@@ -11,8 +11,8 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "app/(auth)/index.jsx",
-    "app/(auth)/splash.jsx",
+    "app/index.jsx",
+    "app/splash.jsx",
     "app/(auth)/login.jsx",
     "app/(auth)/verify-otp.jsx",
     "app/(auth)/signup.jsx"

@@ -154,7 +154,7 @@ const SignupScreen = () => {
     ]).start();
 
     try {
-      const response = await axios.post("http://localhost:5001/auth/signup", {
+      const response = await axios.post("http://192.168.108.40:5001/auth/signup", {
         name: fullName,
         email,
         phone,
@@ -170,7 +170,7 @@ const SignupScreen = () => {
         params: { email },
       });
     } catch (error) {
-      console.log("Signup error:", error.response?.data);
+      console.log("Signup error:", error);
 
       Alert.alert(
         "Signup Failed",

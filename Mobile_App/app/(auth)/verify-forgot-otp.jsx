@@ -25,6 +25,7 @@ const VerifyOTPScreen = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(60);
   const [email, setEmail] = useState(paramEmail || "");
+  const [isLoadingotp, setIsLoadingotp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const inputRefs = useRef([]);
@@ -134,13 +135,13 @@ const VerifyOTPScreen = () => {
       console.log("OTP verified:", response.data);
       if(!response.data){
         shakeAnimation();
-        Alert.alert("Verification Failed", "Invalid OTP");
+        Alert.alert("Verification Failed", "Invalid OTP or OTP expired");
         return;
       }
-      (router.push("/login"),
+      (router.push("/change-password"),
         Alert.alert(
           "Success",
-          response.data.message || "Email verified successfully!",
+          response.message || "Email verified successfully!",
         ));
     } catch (error) {
       console.log("OTP error:", error.response?.data);
@@ -171,6 +172,38 @@ const VerifyOTPScreen = () => {
       );
     }
   };
+
+  const handleSendOtp = async () => {
+  if (!email.trim()) {
+    Alert.alert("Validation Error", "Please enter your email");
+    return;
+  }
+
+  try {
+    setIsLoadingotp(true);
+
+    const response = await axios.post(
+      "http://192.168.108.40:5001/auth/forgot-password",
+      { email }
+    );
+
+    Alert.alert(
+      "OTP Sent",
+      response.data.message || "OTP has been sent to your email"
+    );
+
+    setTimer(60);
+    inputRefs.current[0]?.focus();
+
+  } catch (error) {
+    Alert.alert(
+      "Error",
+      error.response?.data?.message || "Failed to send OTP"
+    );
+  } finally {
+    setIsLoadingotp(false);
+  }
+};
 
   return (
     <View style={styles.container}>
@@ -225,6 +258,21 @@ const VerifyOTPScreen = () => {
                 autoCapitalize="none"
               />
             </View>
+
+            <TouchableOpacity
+                style={styles.sendOtpButton}
+                onPress={handleSendOtp}
+                disabled={isLoadingotp}
+                >
+                <LinearGradient
+                    colors={["#6366f1", "#8b5cf6"]}
+                    style={styles.sendOtpGradient}
+                >
+                    <Text style={styles.sendOtpText}>
+                    {isLoadingotp ? "Sending..." : "Send OTP"}
+                    </Text>
+                </LinearGradient>
+            </TouchableOpacity>
 
             <View style={styles.glassCard}>
               <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
@@ -302,6 +350,22 @@ const VerifyOTPScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  sendOtpButton: {
+marginBottom: 20,
+},
+
+sendOtpGradient: {
+height: 45,
+borderRadius: 12,
+justifyContent: "center",
+alignItems: "center",
+},
+
+sendOtpText: {
+color: "white",
+fontWeight: "600",
+fontSize: 15,
+},
   emailContainer: {
     flexDirection: "row",
     alignItems: "center",

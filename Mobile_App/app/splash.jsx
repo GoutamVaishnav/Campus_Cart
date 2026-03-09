@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { GraduationCap } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
+import { router } from "expo-router";
 import {
   Animated,
   Dimensions,
@@ -56,6 +57,12 @@ const SplashScreen = () => {
       duration: 3500,
       useNativeDriver: false, // Width animation doesn't support native driver
     }).start();
+
+    const timer = setTimeout(() => {
+      router.replace("/(auth)/login");
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (

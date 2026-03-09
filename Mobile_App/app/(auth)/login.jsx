@@ -79,7 +79,7 @@ const LoginScreen = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5001/auth/login", {
+      const response = await axios.post("http://192.168.108.40:5001/auth/login", {
         email,
         password,
       });
@@ -96,7 +96,7 @@ const LoginScreen = () => {
       // Navigate to main app
       router.replace("/(tabs)");
     } catch (error) {
-      console.log("Login error:", error.response?.data);
+      console.log("Login error:", error);
 
       Alert.alert(
         "Login Failed",
@@ -186,7 +186,7 @@ const LoginScreen = () => {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.forgotPassword}>
+              <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push("/verify-forgot-otp")}>
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
 

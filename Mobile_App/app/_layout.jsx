@@ -15,10 +15,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Authentication Flow */}
+        <Stack.Screen name="splash" />
         <Stack.Screen name="(auth)" />
-
-        {/* Main App */}
         <Stack.Screen name="(tabs)" />
       </Stack>
 
