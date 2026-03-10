@@ -1,5 +1,4 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { GraduationCap } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
 import { router } from "expo-router";
 import {
@@ -18,13 +17,15 @@ const SplashScreen = () => {
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const taglineFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Entrance Animations
+    // Entrance
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1200,
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -33,13 +34,27 @@ const SplashScreen = () => {
         tension: 40,
         useNativeDriver: true,
       }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 20,
+        friction: 7,
+        useNativeDriver: true,
+      }),
     ]).start();
 
-    // Subtle Floating Loop
+    // Tagline fade in delayed
+    Animated.timing(taglineFade, {
+      toValue: 1,
+      duration: 800,
+      delay: 600,
+      useNativeDriver: true,
+    }).start();
+
+    // Subtle float loop
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
-          toValue: -15,
+          toValue: -12,
           duration: 2000,
           useNativeDriver: true,
         }),
@@ -48,14 +63,14 @@ const SplashScreen = () => {
           duration: 2000,
           useNativeDriver: true,
         }),
-      ]),
+      ])
     ).start();
 
-    // Loading Bar Progress
+    // Progress bar
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 3500,
-      useNativeDriver: false, // Width animation doesn't support native driver
+      duration: 3200,
+      useNativeDriver: false,
     }).start();
 
     const timer = setTimeout(() => {
@@ -67,20 +82,21 @@ const SplashScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
 
-      {/* Premium Mesh Gradient Background */}
+      {/* Same gradient as login header */}
       <LinearGradient
-        colors={["#F0E7FF", "#FAE8FF", "#EEF2FF"]}
+        colors={["#c3b5b0", "#0088ff"]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0.4, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Background Depth Elements */}
+      {/* Subtle light overlay circles for depth */}
       <View style={[styles.blob, styles.blob1]} />
       <View style={[styles.blob, styles.blob2]} />
 
+      {/* Logo area */}
       <Animated.View
         style={[
           styles.logoContainer,
@@ -90,23 +106,36 @@ const SplashScreen = () => {
           },
         ]}
       >
-        <View style={styles.glassIconContainer}>
-          <GraduationCap size={64} color="#6366f1" strokeWidth={1.5} />
+        {/* Icon badge — mirrors login's white card bottom */}
+        <View style={styles.iconBadge}>
+          <Text style={styles.cartEmoji}>🛒</Text>
         </View>
 
-        <Text style={styles.brandTitle}>Campus</Text>
-        <Text style={styles.brandSubtitle}>Exchange</Text>
+        <Animated.View style={{ transform: [{ translateY: slideAnim }], opacity: fadeAnim }}>
+          <Text style={styles.brandTitle}>Campus</Text>
+          <Text style={styles.brandAccent}>Cart</Text>
+        </Animated.View>
 
-        <View style={styles.taglineBox}>
-          <Text style={styles.taglineText}>TRUSTED BY STUDENTS</Text>
-        </View>
+        <Animated.View style={[styles.taglineBox, { opacity: taglineFade }]}>
+          <Text style={styles.taglineText}>YOUR CAMPUS MARKETPLACE</Text>
+        </Animated.View>
+
+        {/* Feature pills */}
+        <Animated.View style={[styles.pillsRow, { opacity: taglineFade }]}>
+          {["Buy", "Sell", "Exchange"].map((label) => (
+            <View key={label} style={styles.featurePill}>
+              <Text style={styles.featurePillText}>{label}</Text>
+            </View>
+          ))}
+        </Animated.View>
       </Animated.View>
 
-      <View style={styles.bottomContainer}>
-        <View style={styles.glassLoadingBar}>
+      {/* Bottom loading area — sits on white card like the login form */}
+      <View style={styles.bottomCard}>
+        <View style={styles.loadingBarTrack}>
           <Animated.View
             style={[
-              styles.progressFill,
+              styles.loadingBarFill,
               {
                 width: progressAnim.interpolate({
                   inputRange: [0, 1],
@@ -116,16 +145,14 @@ const SplashScreen = () => {
             ]}
           >
             <LinearGradient
-              colors={["#6366f1", "#d946ef"]}
+              colors={["#54d5eb", "#0088ff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
         </View>
-        <Text style={styles.loadingText}>
-          Initializing secure marketplace...
-        </Text>
+        <Text style={styles.loadingText}>Initializing secure marketplace...</Text>
       </View>
     </View>
   );
@@ -137,95 +164,134 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+  // Depth blobs — white/light tones to complement blue
   blob: {
     position: "absolute",
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    opacity: 0.35,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    opacity: 0.12,
   },
   blob1: {
-    backgroundColor: "#c7d2fe",
-    top: -100,
-    left: -100,
+    backgroundColor: "#FFFFFF",
+    top: -80,
+    right: -80,
   },
   blob2: {
-    backgroundColor: "#f5d0fe",
-    bottom: -100,
-    right: -100,
+    backgroundColor: "#FFFFFF",
+    bottom: 60,
+    left: -120,
   },
+
+  // Logo
   logoContainer: {
     alignItems: "center",
+    marginBottom: 40,
   },
-  glassIconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+  iconBadge: {
+    width: 120,
+    height: 120,
+    borderRadius: 34,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 25,
-    // Premium Shadow
-    shadowColor: "#6366f1",
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.2,
-    shadowRadius: 25,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    marginBottom: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 14,
+  },
+  cartEmoji: {
+    fontSize: 54,
   },
   brandTitle: {
-    fontSize: 44,
+    fontSize: 48,
     fontWeight: "900",
-    color: "#1e1b4b",
-    letterSpacing: -1.5,
-    lineHeight: 44,
+    color: "#FFFFFF",
+    letterSpacing: -1,
+    lineHeight: 50,
+    textAlign: "center",
   },
-  brandSubtitle: {
-    fontSize: 44,
+  brandAccent: {
+    fontSize: 48,
     fontWeight: "300",
-    color: "#6366f1",
-    letterSpacing: 2,
-    lineHeight: 44,
-    marginTop: -5,
+    color: "rgba(255,255,255,0.85)",
+    letterSpacing: 6,
+    lineHeight: 48,
+    marginTop: -4,
+    textAlign: "center",
   },
   taglineBox: {
     marginTop: 20,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "rgba(99, 102, 241, 0.1)",
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
   },
   taglineText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
-    color: "#4338ca",
-    letterSpacing: 2,
+    color: "#FFFFFF",
+    letterSpacing: 2.5,
   },
-  bottomContainer: {
+  pillsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  featurePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
+  featurePillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
+  // Bottom white card — mirrors the login form card
+  bottomCard: {
     position: "absolute",
-    bottom: 80,
+    bottom: 0,
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 32,
+    paddingTop: 28,
+    paddingBottom: 52,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 10,
   },
-  glassLoadingBar: {
-    width: width * 0.7,
+  loadingBarTrack: {
+    width: "100%",
     height: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    backgroundColor: "#F0E8E2",
     borderRadius: 10,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    marginBottom: 14,
   },
-  progressFill: {
+  loadingBarFill: {
     height: "100%",
     borderRadius: 10,
   },
   loadingText: {
-    marginTop: 15,
-    color: "#64748b",
+    color: "#8E8E9A",
     fontSize: 13,
     fontWeight: "500",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 });
 

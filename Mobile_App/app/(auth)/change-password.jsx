@@ -1,6 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, Lock, KeyRound } from "lucide-react-native";
 import React, { useRef, useState, useEffect } from "react";
 import {
   Alert,
@@ -8,43 +5,28 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import axios from "axios";
+import Toast from "react-native-toast-message";
 
-const ResetPasswordScreen = () => {
-
+export default function ResetPasswordScreen() {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Animation Refs
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const shakeAnimation = () => {
     Animated.sequence([
@@ -56,196 +38,378 @@ const ResetPasswordScreen = () => {
   };
 
   const handleResetPassword = async () => {
+    if (!email.trim()) {
+      shakeAnimation();
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter your email',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+    }
     if (!newPassword || !confirmPassword) {
       shakeAnimation();
-      Alert.alert("Validation Error", "Please fill all fields");
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fill all fields',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
       return;
     }
-
     if (newPassword !== confirmPassword) {
       shakeAnimation();
-      Alert.alert("Error", "Passwords do not match");
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Passwords do not match',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
       return;
     }
-
-    // Button feedback animation
-    Animated.sequence([
-      Animated.timing(buttonScale, { toValue: 0.95, duration: 100, useNativeDriver: true }),
-      Animated.timing(buttonScale, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start();
 
     try {
       setLoading(true);
-      // Replace localhost with your actual machine IP if testing on physical device
       const response = await axios.post(
-        "http://192.168.108.40:5001/auth/reset-password",
-        {
-          email,
-          newPassword,
-          confirmPassword,
-        }
+        "http://192.168.105.84:5001/auth/reset-password",
+        { email, newPassword, confirmPassword }
       );
-
-      Alert.alert("Success", response.data.message || "Password updated successfully!");
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: response.data.message || "Password updated successfully!",
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
       router.replace("/login");
-
     } catch (error) {
       shakeAnimation();
-      Alert.alert(
-        "Error",
-        error.response?.data?.message || "Password reset failed. Please try again."
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.response?.data?.message || "Password reset failed. Please try again.",
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Password strength indicator
+  const getStrength = (pwd) => {
+    if (!pwd) return { level: 0, label: "", color: "#F0E8E2" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 1) return { level: 1, label: "Weak", color: "#FF4D4D" };
+    if (score === 2) return { level: 2, label: "Fair", color: "#FFA500" };
+    if (score === 3) return { level: 3, label: "Good", color: "#54d5eb" };
+    return { level: 4, label: "Strong", color: "#00C48C" };
+  };
+
+  const strength = getStrength(newPassword);
+
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#EEF2FF", "#FAE8FF", "#F0E7FF"]}
-        style={StyleSheet.absoluteFill}
-      />
-      
-      {/* Background Blobs for the premium look */}
-      <View style={[styles.blob, styles.blob1]} />
-      <View style={[styles.blob, styles.blob2]} />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
-          >
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={() => router.back()}
-            >
-              <ChevronLeft size={28} color="#1e1b4b" />
-            </TouchableOpacity>
+        {/* Header */}
+        <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.brandName}>🛒 CampusCart</Text>
+          <Text style={styles.headerTitle}>Reset Password</Text>
+          <Text style={styles.headerSubtitle}>
+            Create a strong new password for your account
+          </Text>
+        </LinearGradient>
 
-            <View style={styles.header}>
-              <View style={styles.iconCircle}>
-                <KeyRound size={40} color="#8b5cf6" />
-              </View>
-              <Text style={styles.title}>Reset Password</Text>
-              <Text style={styles.subtitle}>
-                Strong passwords include numbers, letters, and symbols.
+        {/* Step indicator */}
+        <View style={styles.pillContainer}>
+          <View style={styles.pillWrap}>
+            <View style={[styles.pill, styles.pillDone]}>
+              <Ionicons name="checkmark" size={12} color="#fff" />
+            </View>
+            <View style={styles.pillLine} />
+            <View style={[styles.pill, styles.pillDone]}>
+              <Ionicons name="checkmark" size={12} color="#fff" />
+            </View>
+            <View style={styles.pillLine} />
+            <View style={[styles.pill, styles.pillActive]}>
+              <Text style={styles.pillText}>3</Text>
+            </View>
+          </View>
+          <View style={styles.pillLabelRow}>
+            <Text style={styles.pillLabel}>Account</Text>
+            <Text style={styles.pillLabel}>Verify</Text>
+            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Reset</Text>
+          </View>
+        </View>
+
+        {/* Form Card */}
+        <Animated.View style={[styles.form, { transform: [{ translateX: shakeAnim }] }]}>
+
+          {/* Email */}
+          <Text style={styles.label}>Registered Email</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="you@iit.ac.in"
+              placeholderTextColor="#BDB8B3"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {/* New Password */}
+          <Text style={styles.label}>New Password</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter new password"
+              placeholderTextColor="#BDB8B3"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!showNew}
+            />
+            <TouchableOpacity onPress={() => setShowNew((p) => !p)} style={styles.eyeBtn}>
+              <Ionicons name={showNew ? "eye-off-outline" : "eye-outline"} size={18} color="#8E8E9A" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Strength bar */}
+          {newPassword.length > 0 && (
+            <View style={styles.strengthRow}>
+              {[1, 2, 3, 4].map((i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.strengthSeg,
+                    { backgroundColor: i <= strength.level ? strength.color : "#F0E8E2" },
+                  ]}
+                />
+              ))}
+              <Text style={[styles.strengthLabel, { color: strength.color }]}>
+                {strength.label}
               </Text>
             </View>
+          )}
 
-            <View style={styles.glassCard}>
-              <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#6366f1" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Registered Email"
-                    placeholderTextColor="#94a3b8"
-                    secureTextEntry
-                    value={email}
-                    onChangeText={setEmail}
-                  />
-                </View>
+          {/* Confirm Password */}
+          <Text style={styles.label}>Confirm New Password</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Re-enter new password"
+              placeholderTextColor="#BDB8B3"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirm}
+            />
+            <TouchableOpacity onPress={() => setShowConfirm((p) => !p)} style={styles.eyeBtn}>
+              <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={18} color="#8E8E9A" />
+            </TouchableOpacity>
+          </View>
 
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#6366f1" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="New Password"
-                    placeholderTextColor="#94a3b8"
-                    secureTextEntry
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#6366f1" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm New Password"
-                    placeholderTextColor="#94a3b8"
-                    secureTextEntry
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                  />
-                </View>
-              </Animated.View>
-
-              <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                <TouchableOpacity
-                  onPress={handleResetPassword}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={["#8b5cf6", "#6366f1"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.button}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text style={styles.buttonText}>Update Password</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
+          {/* Match indicator */}
+          {confirmPassword.length > 0 && (
+            <View style={styles.matchRow}>
+              <Ionicons
+                name={newPassword === confirmPassword ? "checkmark-circle" : "close-circle"}
+                size={14}
+                color={newPassword === confirmPassword ? "#00C48C" : "#FF4D4D"}
+              />
+              <Text style={[styles.matchText, { color: newPassword === confirmPassword ? "#00C48C" : "#FF4D4D" }]}>
+                {newPassword === confirmPassword ? "Passwords match" : "Passwords don't match"}
+              </Text>
             </View>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+          )}
+
+          {/* Hint */}
+          <View style={styles.hintBox}>
+            <Ionicons name="shield-checkmark-outline" size={15} color="#0088ff" />
+            <Text style={styles.hintText}>
+              Use 8+ characters with uppercase, numbers, and symbols for a strong password.
+            </Text>
+          </View>
+
+          {/* Button */}
+          <TouchableOpacity onPress={handleResetPassword} disabled={loading} style={styles.resetBtn}>
+            <LinearGradient colors={["#54d5eb", "#0088ff"]} style={styles.resetBtnGradient}>
+              <Text style={styles.resetBtnText}>
+                {loading ? "Updating..." : "Update Password 🔐"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.loginHint}>
+            <Text style={styles.loginHintText}>Remembered it? </Text>
+            <TouchableOpacity onPress={() => router.push("/login")}>
+              <Text style={styles.loginHintLink}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
+
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { padding: 24, paddingTop: 60 },
-  blob: { position: "absolute", width: 300, height: 300, borderRadius: 150, opacity: 0.4 },
-  blob1: { backgroundColor: "#c7d2fe", top: -50, right: -50 },
-  blob2: { backgroundColor: "#f5d0fe", bottom: 50, left: -100 },
-  backButton: {
-    width: 45, height: 45, borderRadius: 23, backgroundColor: "white",
-    justifyContent: "center", alignItems: "center", marginBottom: 30,
-    elevation: 4, shadowOpacity: 0.1, shadowRadius: 10,
-  },
-  header: { alignItems: "center", marginBottom: 30 },
-  iconCircle: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: "white",
-    justifyContent: "center", alignItems: "center", marginBottom: 20,
-    elevation: 8, shadowColor: "#8b5cf6", shadowOpacity: 0.2, shadowRadius: 15,
-  },
-  title: {
-    fontSize: 28, fontWeight: "800", color: "#1e1b4b", textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 15, color: "#64748b", textAlign: "center", marginTop: 8, paddingHorizontal: 20,
-  },
-  glassCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.7)", borderRadius: 30, padding: 24,
-    borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.5)",
-    shadowColor: "#4f46e5", shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.1, shadowRadius: 30,
-    elevation: 10,
-  },
-  inputContainer: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "white",
-    borderRadius: 16, paddingHorizontal: 16, height: 58,
-    borderWidth: 1, borderColor: "#f1f5f9", marginBottom: 16,
-  },
-  input: { flex: 1, marginLeft: 12, fontSize: 16, color: "#1e293b", fontWeight: "500", outlineStyle: "none" },
-  button: {
-    height: 58, borderRadius: 18, justifyContent: "center", alignItems: "center",
-    marginTop: 10, shadowColor: "#6366f1", shadowOpacity: 0.3, shadowRadius: 12,
-  },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "700" },
-});
+  container: { flex: 1, backgroundColor: "#0088ff" },
+  scroll: { flexGrow: 1 },
 
-export default ResetPasswordScreen;
+  // Header
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  brandName: { fontSize: 20, fontWeight: "900", color: "#FFFFFF", marginBottom: 20 },
+  headerTitle: { fontSize: 30, fontWeight: "900", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 6 },
+
+  // Step pills
+  pillContainer: {
+    backgroundColor: "#0088ff",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+  },
+  pillWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  pill: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pillActive: { backgroundColor: "#FFFFFF" },
+  pillDone: { backgroundColor: "rgba(255,255,255,0.6)" },
+  pillText: { fontSize: 11, fontWeight: "700", color: "#0088ff" },
+  pillLine: { flex: 1, height: 2, backgroundColor: "rgba(255,255,255,0.3)", marginHorizontal: 6 },
+  pillLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+  },
+  pillLabel: { fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: "600", width: 60, textAlign: "center" },
+
+  // Card
+  form: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 26,
+    paddingBottom: 48,
+    marginTop: -10,
+  },
+
+  // Inputs
+  label: { fontSize: 12, fontWeight: "600", color: "#1A1A2E", marginBottom: 8, marginTop: 16 },
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#F0E8E2",
+    borderRadius: 14,
+    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 14,
+  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#1A1A2E", outlineStyle: "none" },
+  eyeBtn: { padding: 6 },
+
+  // Strength bar
+  strengthRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 4,
+  },
+  strengthSeg: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    marginLeft: 8,
+    width: 44,
+  },
+
+  // Match
+  matchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    gap: 5,
+  },
+  matchText: { fontSize: 12, fontWeight: "600" },
+
+  // Hint
+  hintBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 20,
+    marginBottom: 24,
+    gap: 8,
+  },
+  hintText: { flex: 1, fontSize: 12, color: "#4B5563", lineHeight: 17 },
+
+  // Button
+  resetBtn: { borderRadius: 16, overflow: "hidden" },
+  resetBtnGradient: { paddingVertical: 15, alignItems: "center", borderRadius: 16 },
+  resetBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+
+  // Bottom hint
+  loginHint: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  loginHintText: { fontSize: 13, color: "#8E8E9A" },
+  loginHintLink: { fontSize: 13, fontWeight: "700", color: "#0088ff" },
+});

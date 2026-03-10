@@ -1,7 +1,4 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, Mail, ShieldCheck, Timer } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -9,17 +6,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import axios from "axios";
+import Toast from "react-native-toast-message";
 
 const { width } = Dimensions.get("window");
 
-const VerifyOTPScreen = () => {
+export default function VerifyOTPScreen() {
   const { email: paramEmail } = useLocalSearchParams();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -28,27 +30,9 @@ const VerifyOTPScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const inputRefs = useRef([]);
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
     const interval = setInterval(() => {
       setTimer((prev) => (prev <= 0 ? 0 : prev - 1));
     }, 1000);
@@ -57,26 +41,10 @@ const VerifyOTPScreen = () => {
 
   const shakeAnimation = () => {
     Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 80,
-        useNativeDriver: true,
-      }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 80, useNativeDriver: true }),
     ]).start();
   };
 
@@ -100,58 +68,53 @@ const VerifyOTPScreen = () => {
       shakeAnimation();
       return;
     }
-
     if (!email.trim()) {
-      Alert.alert("Validation Error", "Please enter your registered email");
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter your registered email',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
       return;
     }
 
-    // Button animation
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
     setIsLoading(true);
-
     try {
-      const response = await axios.post(
-        "http://192.168.108.40:5001/auth/verify-otp",
-        {
-          email,
-          otp: otpString,
-        },
-      );
+      const response = await axios.post("http://192.168.105.84:5001/auth/verify-otp", {
+        email,
+        otp: otpString,
+      });
 
-      console.log("OTP verified:", response.data);
-      if(!response.data){
+      if (!response.data) {
         shakeAnimation();
-        Alert.alert("Verification Failed", "Invalid OTP");
+        Toast.show({
+          type: 'error',
+          text1: response.message || 'Verification Failed',
+          position: 'bottom',
+          visibilityTime: 3000,
+        });
         return;
       }
-      (router.push("/login"),
-        Alert.alert(
-          "Success",
-          response.data.message || "Email verified successfully!",
-        ));
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: response.data.message || 'Email verified successfully!',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+      router.push("/login");
     } catch (error) {
-      console.log("OTP error:", error.response?.data);
-
       const message = error.response?.data?.message || "Something went wrong";
-
-      if (message === "OTP expired" || message === "Invalid OTP") {
-        shakeAnimation();
-      }
-
-      Alert.alert("Verification Failed", message);
+      if (message === "OTP expired" || message === "Invalid OTP") shakeAnimation();
+      Toast.show({
+        type: 'error',
+        text1: 'Verification Failed',
+        text2: message,
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -159,296 +122,323 @@ const VerifyOTPScreen = () => {
 
   const handleResend = async () => {
     try {
-      await axios.post("http://192.168.108.40:5001/auth/forgot-password", { email });
+      await axios.post("http://192.168.105.84:5001/auth/forgot-password", { email });
       setTimer(60);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
-      Alert.alert("OTP Sent", "A new OTP has been sent to your email");
+      Toast.show({
+        type: 'success',
+        text1: 'OTP Resent',
+        text2: 'A new OTP has been sent to your email',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
     } catch (error) {
-      Alert.alert(
-        "Resend Failed",
-        error.response?.data?.message || "Could not resend OTP",
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Resend Failed',
+        text2: error.response?.data?.message || "Could not resend OTP",
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
     }
   };
 
+  const isOtpComplete = otp.every((d) => d !== "");
+
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#EEF2FF", "#FAE8FF", "#F0E7FF"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[styles.blob, styles.blob1]} />
-      <View style={[styles.blob, styles.blob2]} />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Animated.View
-            style={[
-              styles.content,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <View style={styles.backIconCircle}>
-                <ChevronLeft size={24} color="#1e1b4b" />
-              </View>
-            </TouchableOpacity>
+        {/* Header — mirrors login page */}
+        <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.brandName}>🛒 CampusCart</Text>
+          <Text style={styles.headerTitle}>Verify Email</Text>
+          <Text style={styles.headerSubtitle}>
+            Enter the 6-digit code sent to your inbox
+          </Text>
+        </LinearGradient>
 
-            <View style={styles.header}>
-              <View style={styles.iconCircle}>
-                <ShieldCheck size={40} color="#8b5cf6" />
-              </View>
-              <Text style={styles.headerTitle}>Verify Email</Text>
+        {/* Step indicator pill */}
+        <View style={styles.pillContainer}>
+          <View style={styles.pillWrap}>
+            <View style={[styles.pill, styles.pillDone]}>
+              <Ionicons name="checkmark" size={12} color="#fff" />
             </View>
+            <View style={styles.pillLine} />
+            <View style={[styles.pill, styles.pillActive]}>
+              <Text style={styles.pillText}>2</Text>
+            </View>
+            <View style={styles.pillLine} />
+            <View style={styles.pill}>
+              <Text style={[styles.pillText, { color: "rgba(255,255,255,0.5)" }]}>3</Text>
+            </View>
+          </View>
+          <View style={styles.pillLabelRow}>
+            <Text style={styles.pillLabel}>Account</Text>
+            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Verify</Text>
+            <Text style={styles.pillLabel}>Done</Text>
+          </View>
+        </View>
 
-            <View style={styles.emailContainer}>
-              <Mail size={20} color="#6366f1" style={{ marginRight: 10 }} />
-              <TextInput
-                style={styles.emailInput}
-                placeholder="Enter your registered email"
-                placeholderTextColor="#94a3b8"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+        {/* Form Card */}
+        <View style={styles.form}>
+
+          {/* Email input */}
+          <Text style={styles.label}>Registered Email</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="you@iit.ac.in"
+              placeholderTextColor="#BDB8B3"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {/* OTP label + timer */}
+          <View style={styles.otpLabelRow}>
+            <Text style={styles.label}>One-Time Password</Text>
+            <View style={styles.timerBadge}>
+              <Ionicons
+                name="time-outline"
+                size={13}
+                color={timer > 0 ? "#0088ff" : "#8E8E9A"}
               />
-            </View>
-
-            <View style={styles.glassCard}>
-              <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-                <View style={styles.otpGrid}>
-                  {otp.map((digit, index) => (
-                    <TextInput
-                      key={index}
-                      ref={(ref) => (inputRefs.current[index] = ref)}
-                      style={[
-                        styles.otpInput,
-                        digit !== "" && styles.otpInputActive,
-                      ]}
-                      value={digit}
-                      onChangeText={(v) => handleOtpChange(v, index)}
-                      onKeyPress={(e) => handleKeyPress(e, index)}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                    />
-                  ))}
-                </View>
-              </Animated.View>
-
-              <View style={styles.timerRow}>
-                <Timer size={16} color={timer > 0 ? "#64748b" : "#8b5cf6"} />
-                {timer > 0 ? (
-                  <Text style={styles.timerText}>
-                    {" "}
-                    Resend in {Math.floor(timer / 60)}:
-                    {(timer % 60).toString().padStart(2, "0")}
-                  </Text>
-                ) : (
-                  <TouchableOpacity onPress={handleResend}>
-                    <Text style={styles.resendLink}> Resend Code</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                <TouchableOpacity
-                  onPress={handleVerify}
-                  activeOpacity={0.9}
-                  disabled={isLoading}
-                >
-                  <LinearGradient
-                    colors={["#8b5cf6", "#6366f1"]}
-                    style={styles.mainButton}
-                  >
-                    <Text style={styles.mainButtonText}>
-                      {isLoading ? "Verifying..." : "Verify & Proceed"}
-                    </Text>
-                  </LinearGradient>
+              {timer > 0 ? (
+                <Text style={styles.timerText}>
+                  {" "}
+                  {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleResend}>
+                  <Text style={styles.resendText}> Resend</Text>
                 </TouchableOpacity>
-              </Animated.View>
+              )}
             </View>
+          </View>
 
-            <View style={styles.helpSection}>
-              <Text style={styles.helpTitle}>Need help?</Text>
-              <TouchableOpacity style={styles.helpItem}>
-                <View style={styles.helpIconBox}>
-                  <Mail size={20} color="#6366f1" />
-                </View>
-                <View>
-                  <Text style={styles.helpTextPrimary}>Check Spam Folder</Text>
-                  <Text style={styles.helpTextSecondary}>
-                    Sometimes codes get filtered
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+          {/* OTP Boxes */}
+          <Animated.View
+            style={[styles.otpGrid, { transform: [{ translateX: shakeAnim }] }]}
+          >
+            {otp.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={(ref) => (inputRefs.current[index] = ref)}
+                style={[
+                  styles.otpBox,
+                  digit !== "" && styles.otpBoxFilled,
+                ]}
+                value={digit}
+                onChangeText={(v) => handleOtpChange(v, index)}
+                onKeyPress={(e) => handleKeyPress(e, index)}
+                keyboardType="number-pad"
+                maxLength={1}
+              />
+            ))}
           </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+
+          {/* Info hint */}
+          <View style={styles.hintBox}>
+            <Ionicons name="information-circle-outline" size={15} color="#0088ff" />
+            <Text style={styles.hintText}>
+              Check your spam folder if you don't see the email.
+            </Text>
+          </View>
+
+          {/* Verify Button */}
+          <TouchableOpacity
+            onPress={handleVerify}
+            disabled={isLoading}
+            style={styles.verifyBtn}
+          >
+            <LinearGradient
+              colors={isOtpComplete ? ["#54d5eb", "#0088ff"] : ["#C8E6FA", "#A0CFEE"]}
+              style={styles.verifyBtnGradient}
+            >
+              <Text style={styles.verifyBtnText}>
+                {isLoading ? "Verifying..." : "Verify & Continue 🔓"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.loginHint}>
+            <Text style={styles.loginHintText}>Already verified? </Text>
+            <TouchableOpacity onPress={() => router.push("/login")}>
+              <Text style={styles.loginHintLink}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
+
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  emailContainer: {
+  container: { flex: 1, backgroundColor: "#0088ff" },
+  scroll: { flexGrow: 1 },
+
+  // Header
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  brandName: { fontSize: 20, fontWeight: "900", color: "#FFFFFF", marginBottom: 20 },
+  headerTitle: { fontSize: 30, fontWeight: "900", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 6 },
+
+  // Step pills
+  pillContainer: {
+    backgroundColor: "#0088ff",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+  },
+  pillWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    paddingHorizontal: 14,
-    height: 52,
-    marginBottom: 20,
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  pill: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pillActive: { backgroundColor: "#FFFFFF" },
+  pillDone: { backgroundColor: "rgba(255,255,255,0.6)" },
+  pillText: { fontSize: 11, fontWeight: "700", color: "#0088ff" },
+  pillLine: { flex: 1, height: 2, backgroundColor: "rgba(255,255,255,0.3)", marginHorizontal: 6 },
+  pillLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+  },
+  pillLabel: { fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: "600", width: 60, textAlign: "center" },
+
+  // Card
+  form: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 26,
+    paddingBottom: 48,
+    marginTop: -10,
   },
 
-  emailInput: {
-    flex: 1,
-    fontSize: 16,
-    outlineStyle: "none",
-    color: "#1e293b",
-  },
-  container: { flex: 1, backgroundColor: "#fff" },
-  blob: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    opacity: 0.4,
-  },
-  blob1: { backgroundColor: "#c7d2fe", top: -50, right: -50 },
-  blob2: { backgroundColor: "#f5d0fe", bottom: 50, left: -100 },
-  scrollContent: { flexGrow: 1, paddingBottom: 40 },
-  content: { paddingHorizontal: 20 },
-  backButton: { marginTop: 60, marginBottom: 20 },
-  backIconCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: "white",
-    justifyContent: "center",
+  // Labels & inputs
+  label: { fontSize: 12, fontWeight: "600", color: "#1A1A2E", marginBottom: 8, marginTop: 16 },
+  inputWrap: {
+    flexDirection: "row",
     alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#F0E8E2",
+    borderRadius: 14,
+    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 14,
   },
-  header: { alignItems: "center", marginBottom: 30 },
-  iconCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: "white",
-    justifyContent: "center",
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#1A1A2E", outlineStyle: "none" },
+
+  // OTP label row
+  otpLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    elevation: 8,
-    shadowColor: "#8b5cf6",
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
+    marginTop: 16,
+    marginBottom: 8,
   },
-  headerTitle: { fontSize: 28, fontWeight: "800", color: "#1e1b4b" },
-  headerSubtitle: { fontSize: 16, color: "#64748b", marginTop: 8 },
-  emailText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#6366f1",
-    marginTop: 2,
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  glassCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    borderRadius: 30,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    elevation: 10,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.1,
-    shadowRadius: 30,
-  },
+  timerText: { fontSize: 12, fontWeight: "700", color: "#0088ff" },
+  resendText: { fontSize: 12, fontWeight: "700", color: "#0088ff" },
+
+  // OTP grid
   otpGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 25,
+    marginBottom: 20,
   },
-  otpInput: {
-    width: width * 0.11,
-    height: 60,
-    backgroundColor: "white",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    fontSize: 24,
+  otpBox: {
+    width: (width - 52 - 5 * 10) / 6,
+    height: 56,
+    borderWidth: 1.5,
+    borderColor: "#F0E8E2",
+    borderRadius: 14,
+    backgroundColor: "#FAFAFA",
+    fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
-    color: "#1e293b",
+    color: "#1A1A2E",
   },
-  otpInputActive: {
-    borderColor: "#8b5cf6",
+  otpBoxFilled: {
+    borderColor: "#0088ff",
     borderWidth: 2,
-    backgroundColor: "#fdf4ff",
+    backgroundColor: "#EFF6FF",
+    color: "#0088ff",
   },
-  timerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 25,
-  },
-  timerText: { fontSize: 14, color: "#64748b", fontWeight: "500" },
-  resendLink: { fontSize: 14, color: "#8b5cf6", fontWeight: "700" },
-  mainButton: {
-    height: 58,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#6366f1",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-  },
-  mainButtonText: { color: "white", fontSize: 18, fontWeight: "700" },
-  helpSection: { marginTop: 30, padding: 10 },
-  helpTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1e1b4b",
-    marginBottom: 15,
-  },
-  helpItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 18,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
-  helpIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#f8fafc",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  helpTextPrimary: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
-  helpTextSecondary: { fontSize: 13, color: "#64748b" },
-});
 
-export default VerifyOTPScreen;
+  // Hint
+  hintBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 24,
+    gap: 8,
+  },
+  hintText: { flex: 1, fontSize: 12, color: "#4B5563", lineHeight: 17 },
+
+  // Verify button
+  verifyBtn: { borderRadius: 16, overflow: "hidden" },
+  verifyBtnGradient: { paddingVertical: 15, alignItems: "center", borderRadius: 16 },
+  verifyBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+
+  // Bottom hint
+  loginHint: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  loginHintText: { fontSize: 13, color: "#8E8E9A" },
+  loginHintLink: { fontSize: 13, fontWeight: "700", color: "#0088ff" },
+});

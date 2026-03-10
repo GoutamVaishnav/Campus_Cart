@@ -208,13 +208,13 @@ export const login = async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) return res.status(404).json({ message: "User not found" });
+  if (!user) return res.status(404).json({ message: "User not found", data: false });
 
   const match = await bcrypt.compare(password, user.password_hash);
 
-  if (!match) return res.status(401).json({ message: "Invalid password" });
+  if (!match) return res.status(401).json({ message: "Invalid password", data: false });
 
-  if(!user.verified) return res.status(403).json({ message: "Email not verified" });
+  if(!user.verified) return res.status(403).json({ message: "Email not verified", data: false });
 
   const accessToken = generateAccessToken(user.id);
 
@@ -226,6 +226,7 @@ export const login = async (req, res) => {
 
   res.json({
     message: "Login successful",
+    data: true,
     accessToken,
     refreshToken,
     user,

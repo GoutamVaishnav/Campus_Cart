@@ -13,7 +13,7 @@
     "expo-env.d.ts",
     "app/index.jsx",
     "app/splash.jsx",
-    "app/(auth)/login.jsx",
+    "app/(auth)/login.tsx",
     "app/(auth)/verify-otp.jsx",
     "app/(auth)/signup.jsx"
   ]
