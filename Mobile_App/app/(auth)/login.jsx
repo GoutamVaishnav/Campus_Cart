@@ -1,350 +1,244 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import { ChevronRight, Eye, EyeOff, Lock, Mail } from "lucide-react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  StatusBar,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
-const { width, height } = Dimensions.get("window");
+export default function LoginScreen() {
+  const router = useRouter();
 
-const LoginScreen = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
   const handleLogin = async () => {
-    // ---------------- CLIENT-SIDE VALIDATIONS ----------------
-
-    if (!email.trim()) {
-      return Alert.alert("Validation Error", "Please enter your email");
-    }
-
+    // if (!email.trim()) {
+    //   Alert.alert('Validation Error', 'Please enter your email');
+    //   return;
+    // }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return Alert.alert("Validation Error", "Invalid email format");
+      Toast.show({
+        type: 'error',        // 'success' | 'error' | 'info'
+        text1: 'Validation Error',
+        text2: 'Enter a valid email address',
+        position: 'bottom',      // 'top' | 'bottom'
+        visibilityTime: 3000,
+      });
+      return;
     }
-
     if (!password) {
-      return Alert.alert("Validation Error", "Please enter your password");
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter your password',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+      return;
     }
-
-    // Button animation
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
 
     setIsLoading(true);
-
     try {
-      const response = await axios.post("http://localhost:5001/auth/login", {
+      const response = await axios.post('http://192.168.105.84:5001/auth/login', {
         email,
         password,
       });
-
+      if(!response.data) {
+        Toast.show({
+        type: 'error',
+        text1: response.message || 'Error Logging In',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+      }
       const { accessToken, refreshToken, user } = response.data;
+      await AsyncStorage.setItem('accessToken', accessToken);
+      await AsyncStorage.setItem('refreshToken', refreshToken);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
 
-      // Store tokens securely in AsyncStorage
-      await AsyncStorage.setItem("accessToken", accessToken);
-      await AsyncStorage.setItem("refreshToken", refreshToken);
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+      Toast.show({
+        type: 'success',
+        text1: 'Login Successful',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
 
-      console.log("Login success:", response.data.message);
-
-      // Navigate to main app
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     } catch (error) {
-      console.log("Login error:", error.response?.data);
-
-      Alert.alert(
-        "Login Failed",
-        error.response?.data?.message || "Something went wrong",
-      );
+      console.error('Login error:', error);
+      Toast.show({
+        type: 'error',
+        text1: error.response?.data?.message || 'Error Logging In',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Premium Mesh Gradient Background */}
-      <LinearGradient
-        colors={["#FAE8FF", "#F0E7FF", "#EEF2FF"]}
-        start={{ x: 1, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
 
-      {/* Dynamic Background Blobs */}
-      <View style={[styles.blob, styles.blob1]} />
-      <View style={[styles.blob, styles.blob2]} />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardView}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Animated.View
-            style={[
-              styles.content,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <View style={styles.header}>
-              <Text style={styles.welcomeBack}>Welcome Back! 👋</Text>
-              <Text style={styles.headerTitle}>Campus Exchange</Text>
-              <Text style={styles.headerSubtitle}>
-                Sign in to access your marketplace
+        {/* Header */}
+        <LinearGradient colors={['#c3b5b0', '#0088ff']} style={styles.header}>
+          <Text style={styles.brandName}>🛒 CampusCart</Text>
+          <Text style={styles.headerTitle}>Welcome Back!</Text>
+          <Text style={styles.headerSubtitle}>Sign in to your campus marketplace</Text>
+        </LinearGradient>
+
+        {/* Tab Switch */}
+        <View style={styles.tabContainer}>
+          <View style={styles.tabSwitch}>
+            <View style={[styles.tabBtn, styles.tabBtnActive]}>
+              <Text style={[styles.tabBtnText, styles.tabBtnTextActive]}>Login</Text>
+            </View>
+            <TouchableOpacity style={styles.tabBtn} onPress={() => router.push('/signup')}>
+              <Text style={styles.tabBtnText}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Form */}
+        <View style={styles.form}>
+
+          <Text style={styles.label}>Email</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="you@iit.ac.in"
+              placeholderTextColor="#BDB8B3"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <Text style={styles.label}>Password</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your password"
+              placeholderTextColor="#BDB8B3"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              blurOnSubmit={false}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#8E8E9A" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.forgotRow} onPress={() => router.push("/verify-forgot-otp")}>
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleLogin} disabled={isLoading} style={styles.loginBtn}>
+            <LinearGradient colors={['#54d5eb', '#0088ff']} style={styles.loginBtnGradient}>
+              <Text style={styles.loginBtnText}>
+                {isLoading ? 'Logging in...' : 'Login to CampusCart 🚀'}
               </Text>
-            </View>
+            </LinearGradient>
+          </TouchableOpacity>
 
-            <View style={styles.glassCard}>
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <View style={styles.inputWrapper}>
-                  <Mail size={20} color="#6366f1" style={styles.innerIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="name@college.edu"
-                    placeholderTextColor="#94a3b8"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
+          <View style={styles.signupHint}>
+            <Text style={styles.signupHintText}>New to campus marketplace? </Text>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.signupHintLink}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
 
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <Lock size={20} color="#6366f1" style={styles.innerIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="••••••••"
-                    placeholderTextColor="#94a3b8"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} color="#94a3b8" />
-                    ) : (
-                      <Eye size={20} color="#94a3b8" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              {/* Login Button */}
-              <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                <TouchableOpacity
-                  onPress={handleLogin}
-                  activeOpacity={0.9}
-                  disabled={isLoading}
-                >
-                  <LinearGradient
-                    colors={["#d946ef", "#8b5cf6", "#6366f1"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.mainButton}
-                  >
-                    <Text style={styles.mainButtonText}>
-                      {isLoading ? "Signing In..." : "Sign In"}
-                    </Text>
-                    {!isLoading && (
-                      <ChevronRight
-                        size={20}
-                        color="white"
-                        style={{ marginLeft: 8 }}
-                      />
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>New here? </Text>
-                <TouchableOpacity onPress={() => router.push("/signup")}>
-                  <Text style={styles.footerLink}>Create Account</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  blob: {
-    position: "absolute",
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    opacity: 0.3,
+  container: { flex: 1, backgroundColor: '#0088ff' },
+  scroll: { flexGrow: 1 },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
   },
-  blob1: { backgroundColor: "#fbcfe8", top: -100, left: -100 },
-  blob2: { backgroundColor: "#e0e7ff", bottom: -50, right: -100 },
-  keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: "center", paddingBottom: 40 },
-  content: { paddingHorizontal: 20 },
-  header: { marginBottom: 30, alignItems: "center" },
-  welcomeBack: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6366f1",
-    marginBottom: 8,
+  brandName: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginBottom: 20 },
+  headerTitle: { fontSize: 30, fontWeight: '900', color: '#FFFFFF' },
+  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 6 },
+  tabContainer: { backgroundColor: '#0088ff', paddingHorizontal: 24, paddingVertical: 12 },
+  tabSwitch: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 14,
+    padding: 5,
   },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#1e1b4b",
-    letterSpacing: -1,
-  },
-  headerSubtitle: { fontSize: 15, color: "#64748b", marginTop: 5 },
-  glassCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.75)",
-    borderRadius: 32,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.6)",
-    shadowColor: "#8b5cf6",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.12,
-    shadowRadius: 35,
-    elevation: 12,
-  },
-  inputContainer: { marginBottom: 18 },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
-    marginBottom: 8,
-    marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 58,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
-  innerIcon: { marginRight: 12 },
-  input: {
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
+  tabBtnActive: { backgroundColor: '#FFFFFF' },
+  tabBtnText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
+  tabBtnTextActive: { color: '#0088ff' },
+  form: {
     flex: 1,
-    fontSize: 16,
-    color: "#1e293b",
-    fontWeight: "500",
-    outlineStyle: "none",
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 26,
+    paddingBottom: 48,
+    marginTop: -10,
+    elevation: 5,
+    shadowOpacity: 1,
+    elevation: 3
   },
-  forgotPassword: { alignSelf: "flex-end", marginBottom: 25, marginRight: 4 },
-  forgotPasswordText: { color: "#6366f1", fontSize: 14, fontWeight: "600" },
-  mainButton: {
-    height: 58,
-    borderRadius: 18,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#6366f1",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
+  label: { fontSize: 12, fontWeight: '600', color: '#1A1A2E', marginBottom: 8, marginTop: 16 },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#F0E8E2',
+    borderRadius: 14,
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 14,
   },
-  mainButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 25,
-  },
-  divider: { flex: 1, height: 1, backgroundColor: "#e2e8f0" },
-  dividerText: {
-    marginHorizontal: 15,
-    color: "#94a3b8",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  secondaryButton: {
-    flexDirection: "row",
-    height: 58,
-    borderRadius: 18,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  secondaryButtonText: { color: "#1e293b", fontSize: 16, fontWeight: "600" },
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: 30 },
-  footerText: { color: "#64748b", fontSize: 15 },
-  footerLink: { color: "#6366f1", fontSize: 15, fontWeight: "700" },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: '#1A1A2E', outlineStyle: "none" },
+  eyeBtn: { padding: 6 },
+  forgotRow: { alignItems: 'flex-end', marginTop: 10, marginBottom: 24 },
+  forgotText: { fontSize: 13, fontWeight: '600', color: '#0088ff' },
+  loginBtn: { borderRadius: 16, overflow: 'hidden' },
+  loginBtnGradient: { paddingVertical: 15, alignItems: 'center', borderRadius: 16 },
+  loginBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  signupHint: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  signupHintText: { fontSize: 13, color: '#8E8E9A' },
+  signupHintLink: { fontSize: 13, fontWeight: '700', color: '#0088ff' },
 });
-
-export default LoginScreen;

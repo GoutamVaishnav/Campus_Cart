@@ -182,12 +182,12 @@ export const verifyOTP = async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) return res.status(404).json({ message: "User not found" });
+  if (!user) return res.status(404).json({ message: "User not found", data: false });
 
-  if (user.otp !== otp) return res.status(400).json({ message: "Invalid OTP" });
+  if (user.otp !== otp) return res.status(400).json({ message: "Invalid OTP", data: false });
 
   if (user.otp_expiry < Date.now())
-    return res.status(400).json({ message: "OTP expired" });
+    return res.status(400).json({ message: "OTP expired", data: false });
 
   user.verified = true;
 
@@ -198,6 +198,7 @@ export const verifyOTP = async (req, res) => {
 
   res.json({
     message: "Email verified successfully . Please Login ...",
+    data: true,
   });
 };
 
@@ -207,11 +208,13 @@ export const login = async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) return res.status(404).json({ message: "User not found" });
+  if (!user) return res.status(404).json({ message: "User not found", data: false });
 
   const match = await bcrypt.compare(password, user.password_hash);
 
-  if (!match) return res.status(401).json({ message: "Invalid password" });
+  if (!match) return res.status(401).json({ message: "Invalid password", data: false });
+
+  if(!user.verified) return res.status(403).json({ message: "Email not verified", data: false });
 
   const accessToken = generateAccessToken(user.id);
 
@@ -223,6 +226,7 @@ export const login = async (req, res) => {
 
   res.json({
     message: "Login successful",
+    data: true,
     accessToken,
     refreshToken,
     user,
@@ -294,18 +298,21 @@ export const verifyResetOtp = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         message: "User not found",
+        data: false,
       });
     }
 
     if (user.otp !== otp) {
       return res.status(400).json({
         message: "Invalid OTP",
+        data: false,
       });
     }
 
     if (user.otp_expiry < Date.now()) {
       return res.status(400).json({
         message: "OTP expired",
+        data: false,
       });
     }
     // redirect to reset password page on frontend with email as query param
@@ -314,6 +321,7 @@ export const verifyResetOtp = async (req, res) => {
     res.json({
       message: "OTP verified successfully redirect to reset password page",
       email: user.email,
+      data: true,
     });
   } catch (error) {
     res.status(500).json({
@@ -353,6 +361,7 @@ export const resetPassword = async (req, res) => {
     if (newPassword !== confirmPassword) {
       return res.status(400).json({
         message: "Passwords do not match",
+        data: false,
       });
     }
 
@@ -361,6 +370,7 @@ export const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         message: "User not found",
+        data: false,
       });
     }
 
@@ -375,8 +385,8 @@ export const resetPassword = async (req, res) => {
     await user.save();
 
     res.json({
-      message:
-        "Password reset successful. Please Login ... . redirect to login page",
+      message: "Password reset successful. Please Login ... . redirect to login page",
+        data: true,
     });
   } catch (error) {
     res.status(500).json({

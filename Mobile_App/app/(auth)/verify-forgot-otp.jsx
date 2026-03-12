@@ -21,23 +21,27 @@ import Toast from "react-native-toast-message";
 
 const { width } = Dimensions.get("window");
 
-export default function VerifyOTPScreen() {
+export default function VerifyForgotOTPScreen() {
   const { email: paramEmail } = useLocalSearchParams();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(0);
   const [email, setEmail] = useState(paramEmail || "");
+  const [isLoadingotp, setIsLoadingotp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   const inputRefs = useRef([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (timer <= 0) return;
     const interval = setInterval(() => {
-      setTimer((prev) => (prev <= 0 ? 0 : prev - 1));
+      setTimer((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timer]);
 
   const shakeAnimation = () => {
     Animated.sequence([
@@ -61,62 +65,38 @@ export default function VerifyOTPScreen() {
     }
   };
 
-  const handleVerify = async () => {
-    const otpString = otp.join("");
-
-    if (otpString.length !== 6) {
-      shakeAnimation();
-      return;
-    }
+  const handleSendOtp = async () => {
     if (!email.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please enter your registered email',
-        position: 'bottom',
-        visibilityTime: 3000,
-      });
+      Alert.alert("Validation Error", "Please enter your email");
       return;
     }
-
-    setIsLoading(true);
     try {
-      const response = await axios.post("http://192.168.105.84:5001/auth/verify-otp", {
-        email,
-        otp: otpString,
-      });
-
-      if (!response.data) {
-        shakeAnimation();
-        Toast.show({
-          type: 'error',
-          text1: response.message || 'Verification Failed',
-          position: 'bottom',
-          visibilityTime: 3000,
-        });
-        return;
-      }
-
+      setIsLoadingotp(true);
+      const response = await axios.post(
+        "http://192.168.105.84:5001/auth/forgot-password",
+        { email }
+      );
       Toast.show({
         type: 'success',
-        text1: 'Success',
-        text2: response.data.message || 'Email verified successfully!',
+        text1: 'OTP Sent',
+        text2: response.message || 'OTP has been sent to your email',
         position: 'bottom',
         visibilityTime: 3000,
       });
-      router.push("/login");
+      setOtpSent(true);
+      setTimer(60);
+      setOtp(["", "", "", "", "", ""]);
+      setTimeout(() => inputRefs.current[0]?.focus(), 300);
     } catch (error) {
-      const message = error.response?.data?.message || "Something went wrong";
-      if (message === "OTP expired" || message === "Invalid OTP") shakeAnimation();
       Toast.show({
         type: 'error',
-        text1: 'Verification Failed',
-        text2: message,
+        text1: 'Error',
+        text2: error.response?.data?.message || "Failed to send OTP",
         position: 'bottom',
         visibilityTime: 3000,
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingotp(false);
     }
   };
 
@@ -128,7 +108,7 @@ export default function VerifyOTPScreen() {
       inputRefs.current[0]?.focus();
       Toast.show({
         type: 'success',
-        text1: 'OTP Resent',
+        text1: 'OTP Sent',
         text2: 'A new OTP has been sent to your email',
         position: 'bottom',
         visibilityTime: 3000,
@@ -141,6 +121,69 @@ export default function VerifyOTPScreen() {
         position: 'bottom',
         visibilityTime: 3000,
       });
+    }
+  };
+
+  const handleVerify = async () => {
+    const otpString = otp.join("");
+    if (otpString.length !== 6) {
+      shakeAnimation();
+      return;
+    }
+    if (!email.trim()) {
+      shakeAnimation();
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter your registered email',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+      return;
+    }
+
+    Animated.sequence([
+      Animated.timing(buttonScale, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+      Animated.timing(buttonScale, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        "http://192.168.105.84:5001/auth/verify-otp",
+        { email, otp: otpString }
+      );
+      if (!response.data) {
+        shakeAnimation();
+        Toast.show({
+          type: 'error',
+          text1: 'Verification Failed',
+          text2: 'Invalid OTP or OTP expired',
+          position: 'bottom',
+          visibilityTime: 3000,
+        });
+        return;
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: response.message || 'Email verified successfully!',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+      router.push("/change-password");
+    } catch (error) {
+      const message = error.response?.data?.message || "Something went wrong";
+      if (message === "OTP expired" || message === "Invalid OTP") shakeAnimation();
+      Toast.show({
+        type: 'error',
+        text1: 'Verification Failed',
+        text2: message,
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -159,27 +202,27 @@ export default function VerifyOTPScreen() {
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — mirrors login page */}
+        {/* Header */}
         <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.brandName}>🛒 CampusCart</Text>
-          <Text style={styles.headerTitle}>Verify Email</Text>
+          <Text style={styles.headerTitle}>Forgot Password?</Text>
           <Text style={styles.headerSubtitle}>
-            Enter the 6-digit code sent to your inbox
+            We'll send a code to verify your identity
           </Text>
         </LinearGradient>
 
-        {/* Step indicator pill */}
+        {/* Step indicator */}
         <View style={styles.pillContainer}>
           <View style={styles.pillWrap}>
-            <View style={[styles.pill, styles.pillDone]}>
-              <Ionicons name="checkmark" size={12} color="#fff" />
+            <View style={[styles.pill, styles.pillActive]}>
+              <Text style={styles.pillText}>1</Text>
             </View>
             <View style={styles.pillLine} />
-            <View style={[styles.pill, styles.pillActive]}>
-              <Text style={styles.pillText}>2</Text>
+            <View style={[styles.pill, otpSent && styles.pillActive]}>
+              <Text style={[styles.pillText, !otpSent && { color: "rgba(255,255,255,0.5)" }]}>2</Text>
             </View>
             <View style={styles.pillLine} />
             <View style={styles.pill}>
@@ -187,100 +230,112 @@ export default function VerifyOTPScreen() {
             </View>
           </View>
           <View style={styles.pillLabelRow}>
-            <Text style={styles.pillLabel}>Account</Text>
-            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Verify</Text>
-            <Text style={styles.pillLabel}>Done</Text>
+            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Email</Text>
+            <Text style={[styles.pillLabel, otpSent && { color: "#fff", fontWeight: "700" }]}>Verify</Text>
+            <Text style={styles.pillLabel}>Reset</Text>
           </View>
         </View>
 
         {/* Form Card */}
         <View style={styles.form}>
 
-          {/* Email input */}
+          {/* Email row with Send OTP button inline */}
           <Text style={styles.label}>Registered Email</Text>
-          <View style={styles.inputWrap}>
-            <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="you@iit.ac.in"
-              placeholderTextColor="#BDB8B3"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          {/* OTP label + timer */}
-          <View style={styles.otpLabelRow}>
-            <Text style={styles.label}>One-Time Password</Text>
-            <View style={styles.timerBadge}>
-              <Ionicons
-                name="time-outline"
-                size={13}
-                color={timer > 0 ? "#0088ff" : "#8E8E9A"}
-              />
-              {timer > 0 ? (
-                <Text style={styles.timerText}>
-                  {" "}
-                  {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
-                </Text>
-              ) : (
-                <TouchableOpacity onPress={handleResend}>
-                  <Text style={styles.resendText}> Resend</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* OTP Boxes */}
-          <Animated.View
-            style={[styles.otpGrid, { transform: [{ translateX: shakeAnim }] }]}
-          >
-            {otp.map((digit, index) => (
+          <View style={styles.emailRow}>
+            <View style={[styles.inputWrap, { flex: 1, marginRight: 10 }]}>
+              <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
               <TextInput
-                key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
-                style={[
-                  styles.otpBox,
-                  digit !== "" && styles.otpBoxFilled,
-                ]}
-                value={digit}
-                onChangeText={(v) => handleOtpChange(v, index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                keyboardType="number-pad"
-                maxLength={1}
+                style={styles.input}
+                placeholder="you@iit.ac.in"
+                placeholderTextColor="#BDB8B3"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
-            ))}
-          </Animated.View>
+            </View>
+            <TouchableOpacity onPress={handleSendOtp} disabled={isLoadingotp} style={styles.sendBtn}>
+              <LinearGradient colors={["#54d5eb", "#0088ff"]} style={styles.sendBtnGradient}>
+                <Text style={styles.sendBtnText}>
+                  {isLoadingotp ? "..." : otpSent ? "Resent" : "Send OTP"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
-          {/* Info hint */}
+          {/* OTP section — shown after OTP sent */}
+          {otpSent && (
+            <>
+              <View style={styles.otpLabelRow}>
+                <Text style={styles.label}>One-Time Password</Text>
+                <View style={styles.timerBadge}>
+                  <Ionicons
+                    name="time-outline"
+                    size={13}
+                    color={timer > 0 ? "#0088ff" : "#8E8E9A"}
+                  />
+                  {timer > 0 ? (
+                    <Text style={styles.timerText}>
+                      {" "}{Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
+                    </Text>
+                  ) : (
+                    <TouchableOpacity onPress={handleResend}>
+                      <Text style={styles.resendText}> Resend</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <Animated.View
+                style={[styles.otpGrid, { transform: [{ translateX: shakeAnim }] }]}
+              >
+                {otp.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
+                    value={digit}
+                    onChangeText={(v) => handleOtpChange(v, index)}
+                    onKeyPress={(e) => handleKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                  />
+                ))}
+              </Animated.View>
+            </>
+          )}
+
+          {/* Hint */}
           <View style={styles.hintBox}>
             <Ionicons name="information-circle-outline" size={15} color="#0088ff" />
             <Text style={styles.hintText}>
-              Check your spam folder if you don't see the email.
+              {otpSent
+                ? "Enter the 6-digit code sent to your email. Check spam if not received."
+                : "Enter your registered email and tap 'Send OTP' to receive a verification code."}
             </Text>
           </View>
 
-          {/* Verify Button */}
-          <TouchableOpacity
-            onPress={handleVerify}
-            disabled={isLoading}
-            style={styles.verifyBtn}
-          >
-            <LinearGradient
-              colors={isOtpComplete ? ["#54d5eb", "#0088ff"] : ["#C8E6FA", "#A0CFEE"]}
-              style={styles.verifyBtnGradient}
+          {/* Verify button */}
+          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+            <TouchableOpacity
+              onPress={handleVerify}
+              disabled={isLoading || !otpSent}
+              style={styles.verifyBtn}
             >
-              <Text style={styles.verifyBtnText}>
-                {isLoading ? "Verifying..." : "Verify & Continue 🔓"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={isOtpComplete && otpSent ? ["#54d5eb", "#0088ff"] : ["#C8E6FA", "#A0CFEE"]}
+                style={styles.verifyBtnGradient}
+              >
+                <Text style={styles.verifyBtnText}>
+                  {isLoading ? "Verifying..." : "Verify & Continue 🔓"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
 
           <View style={styles.loginHint}>
-            <Text style={styles.loginHintText}>Already verified? </Text>
+            <Text style={styles.loginHintText}>Remembered your password? </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
               <Text style={styles.loginHintLink}>Back to Login</Text>
             </TouchableOpacity>
@@ -357,7 +412,14 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
 
-  // Labels & inputs
+  // Email row
+  emailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  // Inputs
   label: { fontSize: 12, fontWeight: "600", color: "#1A1A2E", marginBottom: 8, marginTop: 16 },
   inputWrap: {
     flexDirection: "row",
@@ -371,12 +433,23 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 10 },
   input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#1A1A2E", outlineStyle: "none" },
 
+  // Send OTP button
+  sendBtn: { borderRadius: 14, overflow: "hidden" },
+  sendBtnGradient: {
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+
   // OTP label row
   otpLabelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 4,
     marginBottom: 8,
   },
   timerBadge: {
@@ -394,7 +467,7 @@ const styles = StyleSheet.create({
   otpGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 8,
   },
   otpBox: {
     width: (width - 52 - 5 * 10) / 6,
@@ -422,6 +495,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF6FF",
     borderRadius: 12,
     padding: 12,
+    marginTop: 20,
     marginBottom: 24,
     gap: 8,
   },

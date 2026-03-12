@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Alert,
   Animated,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,29 +14,19 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import axios from "axios";
 import Toast from "react-native-toast-message";
 
-const { width } = Dimensions.get("window");
+export default function ResetPasswordScreen() {
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-export default function VerifyOTPScreen() {
-  const { email: paramEmail } = useLocalSearchParams();
-
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [timer, setTimer] = useState(60);
-  const [email, setEmail] = useState(paramEmail || "");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const inputRefs = useRef([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimer((prev) => (prev <= 0 ? 0 : prev - 1));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const shakeAnimation = () => {
     Animated.sequence([
@@ -48,103 +37,83 @@ export default function VerifyOTPScreen() {
     ]).start();
   };
 
-  const handleOtpChange = (value, index) => {
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value !== "" && index < 5) inputRefs.current[index + 1]?.focus();
-  };
-
-  const handleKeyPress = (e, index) => {
-    if (e.nativeEvent.key === "Backspace" && otp[index] === "" && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerify = async () => {
-    const otpString = otp.join("");
-
-    if (otpString.length !== 6) {
-      shakeAnimation();
-      return;
-    }
+  const handleResetPassword = async () => {
     if (!email.trim()) {
+      shakeAnimation();
       Toast.show({
         type: 'error',
         text1: 'Validation Error',
-        text2: 'Please enter your registered email',
+        text2: 'Please enter your email',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+    }
+    if (!newPassword || !confirmPassword) {
+      shakeAnimation();
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fill all fields',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      shakeAnimation();
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Passwords do not match',
         position: 'bottom',
         visibilityTime: 3000,
       });
       return;
     }
 
-    setIsLoading(true);
     try {
-      const response = await axios.post("http://192.168.105.84:5001/auth/verify-otp", {
-        email,
-        otp: otpString,
-      });
-
-      if (!response.data) {
-        shakeAnimation();
-        Toast.show({
-          type: 'error',
-          text1: response.message || 'Verification Failed',
-          position: 'bottom',
-          visibilityTime: 3000,
-        });
-        return;
-      }
-
+      setLoading(true);
+      const response = await axios.post(
+        "http://192.168.105.84:5001/auth/reset-password",
+        { email, newPassword, confirmPassword }
+      );
       Toast.show({
         type: 'success',
         text1: 'Success',
-        text2: response.data.message || 'Email verified successfully!',
+        text2: response.data.message || "Password updated successfully!",
         position: 'bottom',
         visibilityTime: 3000,
       });
-      router.push("/login");
+      router.replace("/login");
     } catch (error) {
-      const message = error.response?.data?.message || "Something went wrong";
-      if (message === "OTP expired" || message === "Invalid OTP") shakeAnimation();
+      shakeAnimation();
       Toast.show({
         type: 'error',
-        text1: 'Verification Failed',
-        text2: message,
+        text1: 'Error',
+        text2: error.response?.data?.message || "Password reset failed. Please try again.",
         position: 'bottom',
         visibilityTime: 3000,
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleResend = async () => {
-    try {
-      await axios.post("http://192.168.105.84:5001/auth/forgot-password", { email });
-      setTimer(60);
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-      Toast.show({
-        type: 'success',
-        text1: 'OTP Resent',
-        text2: 'A new OTP has been sent to your email',
-        position: 'bottom',
-        visibilityTime: 3000,
-      });
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Resend Failed',
-        text2: error.response?.data?.message || "Could not resend OTP",
-        position: 'bottom',
-        visibilityTime: 3000,
-      });
-    }
+  // Password strength indicator
+  const getStrength = (pwd) => {
+    if (!pwd) return { level: 0, label: "", color: "#F0E8E2" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 1) return { level: 1, label: "Weak", color: "#FF4D4D" };
+    if (score === 2) return { level: 2, label: "Fair", color: "#FFA500" };
+    if (score === 3) return { level: 3, label: "Good", color: "#54d5eb" };
+    return { level: 4, label: "Strong", color: "#00C48C" };
   };
 
-  const isOtpComplete = otp.every((d) => d !== "");
+  const strength = getStrength(newPassword);
 
   return (
     <KeyboardAvoidingView
@@ -159,44 +128,44 @@ export default function VerifyOTPScreen() {
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — mirrors login page */}
+        {/* Header */}
         <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.brandName}>🛒 CampusCart</Text>
-          <Text style={styles.headerTitle}>Verify Email</Text>
+          <Text style={styles.headerTitle}>Reset Password</Text>
           <Text style={styles.headerSubtitle}>
-            Enter the 6-digit code sent to your inbox
+            Create a strong new password for your account
           </Text>
         </LinearGradient>
 
-        {/* Step indicator pill */}
+        {/* Step indicator */}
         <View style={styles.pillContainer}>
           <View style={styles.pillWrap}>
             <View style={[styles.pill, styles.pillDone]}>
               <Ionicons name="checkmark" size={12} color="#fff" />
             </View>
             <View style={styles.pillLine} />
-            <View style={[styles.pill, styles.pillActive]}>
-              <Text style={styles.pillText}>2</Text>
+            <View style={[styles.pill, styles.pillDone]}>
+              <Ionicons name="checkmark" size={12} color="#fff" />
             </View>
             <View style={styles.pillLine} />
-            <View style={styles.pill}>
-              <Text style={[styles.pillText, { color: "rgba(255,255,255,0.5)" }]}>3</Text>
+            <View style={[styles.pill, styles.pillActive]}>
+              <Text style={styles.pillText}>3</Text>
             </View>
           </View>
           <View style={styles.pillLabelRow}>
             <Text style={styles.pillLabel}>Account</Text>
-            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Verify</Text>
-            <Text style={styles.pillLabel}>Done</Text>
+            <Text style={styles.pillLabel}>Verify</Text>
+            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Reset</Text>
           </View>
         </View>
 
         {/* Form Card */}
-        <View style={styles.form}>
+        <Animated.View style={[styles.form, { transform: [{ translateX: shakeAnim }] }]}>
 
-          {/* Email input */}
+          {/* Email */}
           <Text style={styles.label}>Registered Email</Text>
           <View style={styles.inputWrap}>
             <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
@@ -212,81 +181,97 @@ export default function VerifyOTPScreen() {
             />
           </View>
 
-          {/* OTP label + timer */}
-          <View style={styles.otpLabelRow}>
-            <Text style={styles.label}>One-Time Password</Text>
-            <View style={styles.timerBadge}>
-              <Ionicons
-                name="time-outline"
-                size={13}
-                color={timer > 0 ? "#0088ff" : "#8E8E9A"}
-              />
-              {timer > 0 ? (
-                <Text style={styles.timerText}>
-                  {" "}
-                  {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
-                </Text>
-              ) : (
-                <TouchableOpacity onPress={handleResend}>
-                  <Text style={styles.resendText}> Resend</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+          {/* New Password */}
+          <Text style={styles.label}>New Password</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter new password"
+              placeholderTextColor="#BDB8B3"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!showNew}
+            />
+            <TouchableOpacity onPress={() => setShowNew((p) => !p)} style={styles.eyeBtn}>
+              <Ionicons name={showNew ? "eye-off-outline" : "eye-outline"} size={18} color="#8E8E9A" />
+            </TouchableOpacity>
           </View>
 
-          {/* OTP Boxes */}
-          <Animated.View
-            style={[styles.otpGrid, { transform: [{ translateX: shakeAnim }] }]}
-          >
-            {otp.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
-                style={[
-                  styles.otpBox,
-                  digit !== "" && styles.otpBoxFilled,
-                ]}
-                value={digit}
-                onChangeText={(v) => handleOtpChange(v, index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                keyboardType="number-pad"
-                maxLength={1}
-              />
-            ))}
-          </Animated.View>
+          {/* Strength bar */}
+          {newPassword.length > 0 && (
+            <View style={styles.strengthRow}>
+              {[1, 2, 3, 4].map((i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.strengthSeg,
+                    { backgroundColor: i <= strength.level ? strength.color : "#F0E8E2" },
+                  ]}
+                />
+              ))}
+              <Text style={[styles.strengthLabel, { color: strength.color }]}>
+                {strength.label}
+              </Text>
+            </View>
+          )}
 
-          {/* Info hint */}
+          {/* Confirm Password */}
+          <Text style={styles.label}>Confirm New Password</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Re-enter new password"
+              placeholderTextColor="#BDB8B3"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirm}
+            />
+            <TouchableOpacity onPress={() => setShowConfirm((p) => !p)} style={styles.eyeBtn}>
+              <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={18} color="#8E8E9A" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Match indicator */}
+          {confirmPassword.length > 0 && (
+            <View style={styles.matchRow}>
+              <Ionicons
+                name={newPassword === confirmPassword ? "checkmark-circle" : "close-circle"}
+                size={14}
+                color={newPassword === confirmPassword ? "#00C48C" : "#FF4D4D"}
+              />
+              <Text style={[styles.matchText, { color: newPassword === confirmPassword ? "#00C48C" : "#FF4D4D" }]}>
+                {newPassword === confirmPassword ? "Passwords match" : "Passwords don't match"}
+              </Text>
+            </View>
+          )}
+
+          {/* Hint */}
           <View style={styles.hintBox}>
-            <Ionicons name="information-circle-outline" size={15} color="#0088ff" />
+            <Ionicons name="shield-checkmark-outline" size={15} color="#0088ff" />
             <Text style={styles.hintText}>
-              Check your spam folder if you don't see the email.
+              Use 8+ characters with uppercase, numbers, and symbols for a strong password.
             </Text>
           </View>
 
-          {/* Verify Button */}
-          <TouchableOpacity
-            onPress={handleVerify}
-            disabled={isLoading}
-            style={styles.verifyBtn}
-          >
-            <LinearGradient
-              colors={isOtpComplete ? ["#54d5eb", "#0088ff"] : ["#C8E6FA", "#A0CFEE"]}
-              style={styles.verifyBtnGradient}
-            >
-              <Text style={styles.verifyBtnText}>
-                {isLoading ? "Verifying..." : "Verify & Continue 🔓"}
+          {/* Button */}
+          <TouchableOpacity onPress={handleResetPassword} disabled={loading} style={styles.resetBtn}>
+            <LinearGradient colors={["#54d5eb", "#0088ff"]} style={styles.resetBtnGradient}>
+              <Text style={styles.resetBtnText}>
+                {loading ? "Updating..." : "Update Password 🔐"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <View style={styles.loginHint}>
-            <Text style={styles.loginHintText}>Already verified? </Text>
+            <Text style={styles.loginHintText}>Remembered it? </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
               <Text style={styles.loginHintLink}>Back to Login</Text>
             </TouchableOpacity>
           </View>
 
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -357,7 +342,7 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
 
-  // Labels & inputs
+  // Inputs
   label: { fontSize: 12, fontWeight: "600", color: "#1A1A2E", marginBottom: 8, marginTop: 16 },
   inputWrap: {
     flexDirection: "row",
@@ -370,50 +355,35 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#1A1A2E", outlineStyle: "none" },
+  eyeBtn: { padding: 6 },
 
-  // OTP label row
-  otpLabelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  timerBadge: {
+  // Strength bar
+  strengthRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    marginTop: 8,
+    gap: 4,
   },
-  timerText: { fontSize: 12, fontWeight: "700", color: "#0088ff" },
-  resendText: { fontSize: 12, fontWeight: "700", color: "#0088ff" },
-
-  // OTP grid
-  otpGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
+  strengthSeg: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
   },
-  otpBox: {
-    width: (width - 52 - 5 * 10) / 6,
-    height: 56,
-    borderWidth: 1.5,
-    borderColor: "#F0E8E2",
-    borderRadius: 14,
-    backgroundColor: "#FAFAFA",
-    fontSize: 22,
+  strengthLabel: {
+    fontSize: 11,
     fontWeight: "700",
-    textAlign: "center",
-    color: "#1A1A2E",
+    marginLeft: 8,
+    width: 44,
   },
-  otpBoxFilled: {
-    borderColor: "#0088ff",
-    borderWidth: 2,
-    backgroundColor: "#EFF6FF",
-    color: "#0088ff",
+
+  // Match
+  matchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    gap: 5,
   },
+  matchText: { fontSize: 12, fontWeight: "600" },
 
   // Hint
   hintBox: {
@@ -422,15 +392,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF6FF",
     borderRadius: 12,
     padding: 12,
+    marginTop: 20,
     marginBottom: 24,
     gap: 8,
   },
   hintText: { flex: 1, fontSize: 12, color: "#4B5563", lineHeight: 17 },
 
-  // Verify button
-  verifyBtn: { borderRadius: 16, overflow: "hidden" },
-  verifyBtnGradient: { paddingVertical: 15, alignItems: "center", borderRadius: 16 },
-  verifyBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+  // Button
+  resetBtn: { borderRadius: 16, overflow: "hidden" },
+  resetBtnGradient: { paddingVertical: 15, alignItems: "center", borderRadius: 16 },
+  resetBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
 
   // Bottom hint
   loginHint: {
