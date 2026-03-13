@@ -16,5 +16,5 @@
     "app/(auth)/login.tsx",
     "app/(auth)/verify-otp.jsx",
     "app/(auth)/signup.jsx"
-  ]
+, "app/(tabs)/index.jsx", "app/(tabs)/_layout.jsx"  ]
 }

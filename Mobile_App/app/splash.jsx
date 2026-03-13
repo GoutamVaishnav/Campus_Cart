@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Animated,
   Dimensions,
@@ -21,7 +22,7 @@ const SplashScreen = () => {
   const taglineFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Entrance
+    // ── Entrance animations ──────────────────────────────
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -42,7 +43,6 @@ const SplashScreen = () => {
       }),
     ]).start();
 
-    // Tagline fade in delayed
     Animated.timing(taglineFade, {
       toValue: 1,
       duration: 800,
@@ -50,7 +50,6 @@ const SplashScreen = () => {
       useNativeDriver: true,
     }).start();
 
-    // Subtle float loop
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
@@ -63,18 +62,32 @@ const SplashScreen = () => {
           duration: 2000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
-    // Progress bar
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 3200,
+      duration: 2800,
       useNativeDriver: false,
     }).start();
 
+    // ── Auth check + redirect after splash duration ──────
+    const checkAndRedirect = async () => {
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+        if (token) {
+          router.replace("/(tabs)");
+        } else {
+          router.replace("/(auth)/login");
+        }
+      } catch (e) {
+        router.replace("/(auth)/login");
+      }
+    };
+
+    // Wait for splash to finish, then check token
     const timer = setTimeout(() => {
-      router.replace("/(auth)/login");
+      checkAndRedirect();
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -84,7 +97,6 @@ const SplashScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
 
-      {/* Same gradient as login header */}
       <LinearGradient
         colors={["#c3b5b0", "#0088ff"]}
         start={{ x: 0, y: 0 }}
@@ -92,7 +104,6 @@ const SplashScreen = () => {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Subtle light overlay circles for depth */}
       <View style={[styles.blob, styles.blob1]} />
       <View style={[styles.blob, styles.blob2]} />
 
@@ -106,12 +117,13 @@ const SplashScreen = () => {
           },
         ]}
       >
-        {/* Icon badge — mirrors login's white card bottom */}
         <View style={styles.iconBadge}>
           <Text style={styles.cartEmoji}>🛒</Text>
         </View>
 
-        <Animated.View style={{ transform: [{ translateY: slideAnim }], opacity: fadeAnim }}>
+        <Animated.View
+          style={{ transform: [{ translateY: slideAnim }], opacity: fadeAnim }}
+        >
           <Text style={styles.brandTitle}>Campus</Text>
           <Text style={styles.brandAccent}>Cart</Text>
         </Animated.View>
@@ -120,7 +132,6 @@ const SplashScreen = () => {
           <Text style={styles.taglineText}>YOUR CAMPUS MARKETPLACE</Text>
         </Animated.View>
 
-        {/* Feature pills */}
         <Animated.View style={[styles.pillsRow, { opacity: taglineFade }]}>
           {["Buy", "Sell", "Exchange"].map((label) => (
             <View key={label} style={styles.featurePill}>
@@ -130,7 +141,7 @@ const SplashScreen = () => {
         </Animated.View>
       </Animated.View>
 
-      {/* Bottom loading area — sits on white card like the login form */}
+      {/* Bottom card */}
       <View style={styles.bottomCard}>
         <View style={styles.loadingBarTrack}>
           <Animated.View
@@ -152,7 +163,9 @@ const SplashScreen = () => {
             />
           </Animated.View>
         </View>
-        <Text style={styles.loadingText}>Initializing secure marketplace...</Text>
+        <Text style={styles.loadingText}>
+          Initializing secure marketplace...
+        </Text>
       </View>
     </View>
   );
@@ -164,8 +177,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  // Depth blobs — white/light tones to complement blue
   blob: {
     position: "absolute",
     width: 350,
@@ -173,22 +184,10 @@ const styles = StyleSheet.create({
     borderRadius: 175,
     opacity: 0.12,
   },
-  blob1: {
-    backgroundColor: "#FFFFFF",
-    top: -80,
-    right: -80,
-  },
-  blob2: {
-    backgroundColor: "#FFFFFF",
-    bottom: 60,
-    left: -120,
-  },
+  blob1: { backgroundColor: "#FFFFFF", top: -80, right: -80 },
+  blob2: { backgroundColor: "#FFFFFF", bottom: 60, left: -120 },
 
-  // Logo
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
+  logoContainer: { alignItems: "center", marginBottom: 40 },
   iconBadge: {
     width: 120,
     height: 120,
@@ -203,9 +202,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 14,
   },
-  cartEmoji: {
-    fontSize: 54,
-  },
+  cartEmoji: { fontSize: 54 },
   brandTitle: {
     fontSize: 48,
     fontWeight: "900",
@@ -238,11 +235,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     letterSpacing: 2.5,
   },
-  pillsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 20,
-  },
+  pillsRow: { flexDirection: "row", gap: 10, marginTop: 20 },
   featurePill: {
     paddingHorizontal: 16,
     paddingVertical: 7,
@@ -251,13 +244,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.25)",
   },
-  featurePillText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
+  featurePillText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
 
-  // Bottom white card — mirrors the login form card
   bottomCard: {
     position: "absolute",
     bottom: 0,
@@ -283,10 +271,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 14,
   },
-  loadingBarFill: {
-    height: "100%",
-    borderRadius: 10,
-  },
+  loadingBarFill: { height: "100%", borderRadius: 10 },
   loadingText: {
     color: "#8E8E9A",
     fontSize: 13,

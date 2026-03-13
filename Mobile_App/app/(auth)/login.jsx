@@ -55,7 +55,7 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://192.168.105.84:5001/auth/login', {
+      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/login`, {
         email,
         password,
       });

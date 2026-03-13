@@ -73,7 +73,7 @@ export default function VerifyForgotOTPScreen() {
     try {
       setIsLoadingotp(true);
       const response = await axios.post(
-        "http://192.168.105.84:5001/auth/forgot-password",
+        `http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/forgot-password`,
         { email }
       );
       Toast.show({
@@ -102,7 +102,7 @@ export default function VerifyForgotOTPScreen() {
 
   const handleResend = async () => {
     try {
-      await axios.post("http://192.168.105.84:5001/auth/forgot-password", { email });
+      await axios.post(`http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/forgot-password`, { email });
       setTimer(60);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
@@ -150,7 +150,7 @@ export default function VerifyForgotOTPScreen() {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://192.168.105.84:5001/auth/verify-otp",
+        `http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/verify-otp`,
         { email, otp: otpString }
       );
       if (!response.data) {

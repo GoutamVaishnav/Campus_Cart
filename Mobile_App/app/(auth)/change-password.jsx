@@ -74,7 +74,7 @@ export default function ResetPasswordScreen() {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://192.168.105.84:5001/auth/reset-password",
+        `http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/reset-password`,
         { email, newPassword, confirmPassword }
       );
       Toast.show({
