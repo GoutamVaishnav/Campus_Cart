@@ -18,6 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import Toast from "react-native-toast-message";
+import { forgotPassword } from "../../services/auth-services/forgotPassword";
+import { verifyOtp } from "../../services/auth-services/verifyOtp";
 
 const { width } = Dimensions.get("window");
 
@@ -97,14 +99,14 @@ export default function VerifyOTPScreen() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:5001/auth/verify-otp",
-        {
-          email,
-          otp: otpString,
-        },
-      );
-
+      // const response = await axios.post(
+      //   "http://localhost:5001/auth/verify-otp",
+      //   {
+      //     email,
+      //     otp: otpString,
+      //   },
+      // );
+      const response = await verifyOtp({ email,otpString });
       if (!response.data) {
         shakeAnimation();
         Toast.show({
@@ -142,7 +144,7 @@ export default function VerifyOTPScreen() {
 
   const handleResend = async () => {
     try {
-      await axios.post("http://localhost:5001/auth/forgot-password", { email });
+      await forgotPassword({ email });
       setTimer(60);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();

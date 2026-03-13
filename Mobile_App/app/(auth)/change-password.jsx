@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import axios from "axios";
 import Toast from "react-native-toast-message";
+import { resetPassword } from "../../services/auth-services/resetPassword";
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -89,10 +90,12 @@ export default function ResetPasswordScreen() {
 
     try {
       setLoading(true);
-      const response = await axios.post(
-        "http://localhost:5001/auth/reset-password",
-        { email, newPassword, confirmPassword },
-      );
+      // const response = await axios.post(
+      //   "http://localhost:5001/auth/reset-password",
+      //   { email, newPassword, confirmPassword },
+      // );
+    
+      const response = await resetPassword({ email, newPassword, confirmPassword });
       Toast.show({
         type: "success",
         text1: "Success",

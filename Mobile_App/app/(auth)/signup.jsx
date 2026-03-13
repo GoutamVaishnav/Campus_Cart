@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import Toast from "react-native-toast-message";
 import { colleges } from "../../constants/userData";
-
+import { signupUser } from "../../services/auth-services/signupService";
 export default function SignupScreen() {
   const router = useRouter();
 
@@ -48,8 +48,101 @@ export default function SignupScreen() {
     setFilteredColleges(filtered);
   };
 
+  // const handleSignup = async () => {
+  //   const fullName = `${firstName} ${lastName}`.trim();
+  //   if (!fullName) {
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Validation Error",
+  //       text2: "Full name is required",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //   }
+
+  //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  //   if (!emailRegex.test(email)) {
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Validation Error",
+  //       text2: "Invalid email format",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //     return;
+  //   }
+
+  //   const phoneRegex = /^[0-9]{10}$/;
+  //   if (!phoneRegex.test(mobile)) {
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Validation Error",
+  //       text2: "Phone number must be exactly 10 digits",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //     return;
+  //   }
+
+  //   const passwordRegex =
+  //     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{7,}$/;
+  //   if (!passwordRegex.test(password)) {
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Validation Error",
+  //       text2:
+  //         "Password must include uppercase, lowercase, number and special character",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //     return;
+  //   }
+
+  //   if (password !== confirmPassword) {
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Validation Error",
+  //       text2: "Passwords do not match",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   try {
+  //     const response = await axios.post("http://localhost:5001/auth/signup", {
+  //       name: fullName,
+  //       email,
+  //       phone: mobile,
+  //       password,
+  //     });
+
+  //     console.log("Signup success:", response.data);
+
+  //     Toast.show({
+  //       type: "success",
+  //       text1: "Signup Successful",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //     router.push("/verify-otp", { email });
+  //   } catch (error) {
+  //     Toast.show({
+  //       type: "error",
+  //       text1: "Signup Failed",
+  //       text2: error.response?.data?.message || "Something went wrong",
+  //       position: "bottom",
+  //       visibilityTime: 3000,
+  //     });
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const handleSignup = async () => {
     const fullName = `${firstName} ${lastName}`.trim();
+
     if (!fullName) {
       Toast.show({
         type: "error",
@@ -58,9 +151,11 @@ export default function SignupScreen() {
         position: "bottom",
         visibilityTime: 3000,
       });
+      return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
       Toast.show({
         type: "error",
@@ -73,6 +168,7 @@ export default function SignupScreen() {
     }
 
     const phoneRegex = /^[0-9]{10}$/;
+
     if (!phoneRegex.test(mobile)) {
       Toast.show({
         type: "error",
@@ -86,6 +182,7 @@ export default function SignupScreen() {
 
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{7,}$/;
+
     if (!passwordRegex.test(password)) {
       Toast.show({
         type: "error",
@@ -109,16 +206,28 @@ export default function SignupScreen() {
       return;
     }
 
+    if (!college) {
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please select a college",
+        position: "bottom",
+        visibilityTime: 3000,
+      });
+      return;
+    }
+
     setIsLoading(true);
+
     try {
-      const response = await axios.post("http://localhost:5001/auth/signup", {
+      const response = await signupUser({
         name: fullName,
         email,
         phone: mobile,
         password,
+        college,
       });
-
-      console.log("Signup success:", response.data);
+      console.log("signup response", response.data);
 
       Toast.show({
         type: "success",
@@ -126,7 +235,11 @@ export default function SignupScreen() {
         position: "bottom",
         visibilityTime: 3000,
       });
-      router.push("/verify-otp", { email });
+
+      router.push({
+        pathname: "/verify-otp",
+        params: { email },
+      });
     } catch (error) {
       Toast.show({
         type: "error",
@@ -139,7 +252,6 @@ export default function SignupScreen() {
       setIsLoading(false);
     }
   };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}

@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { loginUser } from "../../services/auth-services/loginApi";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -27,21 +28,19 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    // if (!email.trim()) {
-    //   Alert.alert('Validation Error', 'Please enter your email');
-    //   return;
-    // }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
       Toast.show({
-        type: "error", // 'success' | 'error' | 'info'
+        type: "error",
         text1: "Validation Error",
         text2: "Enter a valid email address",
-        position: "bottom", // 'top' | 'bottom'
+        position: "bottom",
         visibilityTime: 3000,
       });
       return;
     }
+
     if (!password) {
       Toast.show({
         type: "error",
@@ -54,23 +53,9 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
+
     try {
-      const response = await axios.post("http://localhost:5001/auth/login", {
-        email,
-        password,
-      });
-      if (!response.data) {
-        Toast.show({
-          type: "error",
-          text1: response.message || "Error Logging In",
-          position: "bottom",
-          visibilityTime: 3000,
-        });
-      }
-      const { accessToken, refreshToken, user } = response.data;
-      await AsyncStorage.setItem("accessToken", accessToken);
-      await AsyncStorage.setItem("refreshToken", refreshToken);
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+      await loginUser(email, password);
 
       Toast.show({
         type: "success",
@@ -81,7 +66,6 @@ export default function LoginScreen() {
 
       router.replace("/(tabs)");
     } catch (error) {
-      console.error("Login error:", error);
       Toast.show({
         type: "error",
         text1: error.response?.data?.message || "Error Logging In",
