@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import axios from "axios";
 import Toast from "react-native-toast-message";
+import { resetPassword } from "../../services/auth-services/resetPassword";
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -30,10 +31,26 @@ export default function ResetPasswordScreen() {
 
   const shakeAnimation = () => {
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 10, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -10, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 10, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeAnim, {
+        toValue: 10,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -10,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 10,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 80,
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
@@ -41,20 +58,20 @@ export default function ResetPasswordScreen() {
     if (!email.trim()) {
       shakeAnimation();
       Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please enter your email',
-        position: 'bottom',
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please enter your email",
+        position: "bottom",
         visibilityTime: 3000,
       });
     }
     if (!newPassword || !confirmPassword) {
       shakeAnimation();
       Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please fill all fields',
-        position: 'bottom',
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please fill all fields",
+        position: "bottom",
         visibilityTime: 3000,
       });
       return;
@@ -62,10 +79,10 @@ export default function ResetPasswordScreen() {
     if (newPassword !== confirmPassword) {
       shakeAnimation();
       Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Passwords do not match',
-        position: 'bottom',
+        type: "error",
+        text1: "Validation Error",
+        text2: "Passwords do not match",
+        position: "bottom",
         visibilityTime: 3000,
       });
       return;
@@ -74,24 +91,26 @@ export default function ResetPasswordScreen() {
     try {
       setLoading(true);
       const response = await axios.post(
-        `http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/reset-password`,
-        { email, newPassword, confirmPassword }
+        "http://192.168.105.84:5001/auth/reset-password",
+        { email, newPassword, confirmPassword },
       );
       Toast.show({
-        type: 'success',
-        text1: 'Success',
+        type: "success",
+        text1: "Success",
         text2: response.data.message || "Password updated successfully!",
-        position: 'bottom',
+        position: "bottom",
         visibilityTime: 3000,
       });
       router.replace("/login");
     } catch (error) {
       shakeAnimation();
       Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: error.response?.data?.message || "Password reset failed. Please try again.",
-        position: 'bottom',
+        type: "error",
+        text1: "Error",
+        text2:
+          error.response?.data?.message ||
+          "Password reset failed. Please try again.",
+        position: "bottom",
         visibilityTime: 3000,
       });
     } finally {
@@ -130,7 +149,10 @@ export default function ResetPasswordScreen() {
       >
         {/* Header */}
         <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.brandName}>🛒 CampusCart</Text>
@@ -158,17 +180,27 @@ export default function ResetPasswordScreen() {
           <View style={styles.pillLabelRow}>
             <Text style={styles.pillLabel}>Account</Text>
             <Text style={styles.pillLabel}>Verify</Text>
-            <Text style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}>Reset</Text>
+            <Text
+              style={[styles.pillLabel, { color: "#fff", fontWeight: "700" }]}
+            >
+              Reset
+            </Text>
           </View>
         </View>
 
         {/* Form Card */}
-        <Animated.View style={[styles.form, { transform: [{ translateX: shakeAnim }] }]}>
-
+        <Animated.View
+          style={[styles.form, { transform: [{ translateX: shakeAnim }] }]}
+        >
           {/* Email */}
           <Text style={styles.label}>Registered Email</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <Ionicons
+              name="mail-outline"
+              size={18}
+              color="#8E8E9A"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="you@iit.ac.in"
@@ -184,7 +216,12 @@ export default function ResetPasswordScreen() {
           {/* New Password */}
           <Text style={styles.label}>New Password</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={18}
+              color="#8E8E9A"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Enter new password"
@@ -193,8 +230,15 @@ export default function ResetPasswordScreen() {
               onChangeText={setNewPassword}
               secureTextEntry={!showNew}
             />
-            <TouchableOpacity onPress={() => setShowNew((p) => !p)} style={styles.eyeBtn}>
-              <Ionicons name={showNew ? "eye-off-outline" : "eye-outline"} size={18} color="#8E8E9A" />
+            <TouchableOpacity
+              onPress={() => setShowNew((p) => !p)}
+              style={styles.eyeBtn}
+            >
+              <Ionicons
+                name={showNew ? "eye-off-outline" : "eye-outline"}
+                size={18}
+                color="#8E8E9A"
+              />
             </TouchableOpacity>
           </View>
 
@@ -206,7 +250,10 @@ export default function ResetPasswordScreen() {
                   key={i}
                   style={[
                     styles.strengthSeg,
-                    { backgroundColor: i <= strength.level ? strength.color : "#F0E8E2" },
+                    {
+                      backgroundColor:
+                        i <= strength.level ? strength.color : "#F0E8E2",
+                    },
                   ]}
                 />
               ))}
@@ -219,7 +266,12 @@ export default function ResetPasswordScreen() {
           {/* Confirm Password */}
           <Text style={styles.label}>Confirm New Password</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={18}
+              color="#8E8E9A"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Re-enter new password"
@@ -228,8 +280,15 @@ export default function ResetPasswordScreen() {
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirm}
             />
-            <TouchableOpacity onPress={() => setShowConfirm((p) => !p)} style={styles.eyeBtn}>
-              <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={18} color="#8E8E9A" />
+            <TouchableOpacity
+              onPress={() => setShowConfirm((p) => !p)}
+              style={styles.eyeBtn}
+            >
+              <Ionicons
+                name={showConfirm ? "eye-off-outline" : "eye-outline"}
+                size={18}
+                color="#8E8E9A"
+              />
             </TouchableOpacity>
           </View>
 
@@ -237,27 +296,53 @@ export default function ResetPasswordScreen() {
           {confirmPassword.length > 0 && (
             <View style={styles.matchRow}>
               <Ionicons
-                name={newPassword === confirmPassword ? "checkmark-circle" : "close-circle"}
+                name={
+                  newPassword === confirmPassword
+                    ? "checkmark-circle"
+                    : "close-circle"
+                }
                 size={14}
                 color={newPassword === confirmPassword ? "#00C48C" : "#FF4D4D"}
               />
-              <Text style={[styles.matchText, { color: newPassword === confirmPassword ? "#00C48C" : "#FF4D4D" }]}>
-                {newPassword === confirmPassword ? "Passwords match" : "Passwords don't match"}
+              <Text
+                style={[
+                  styles.matchText,
+                  {
+                    color:
+                      newPassword === confirmPassword ? "#00C48C" : "#FF4D4D",
+                  },
+                ]}
+              >
+                {newPassword === confirmPassword
+                  ? "Passwords match"
+                  : "Passwords don't match"}
               </Text>
             </View>
           )}
 
           {/* Hint */}
           <View style={styles.hintBox}>
-            <Ionicons name="shield-checkmark-outline" size={15} color="#0088ff" />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={15}
+              color="#0088ff"
+            />
             <Text style={styles.hintText}>
-              Use 8+ characters with uppercase, numbers, and symbols for a strong password.
+              Use 8+ characters with uppercase, numbers, and symbols for a
+              strong password.
             </Text>
           </View>
 
           {/* Button */}
-          <TouchableOpacity onPress={handleResetPassword} disabled={loading} style={styles.resetBtn}>
-            <LinearGradient colors={["#54d5eb", "#0088ff"]} style={styles.resetBtnGradient}>
+          <TouchableOpacity
+            onPress={handleResetPassword}
+            disabled={loading}
+            style={styles.resetBtn}
+          >
+            <LinearGradient
+              colors={["#54d5eb", "#0088ff"]}
+              style={styles.resetBtnGradient}
+            >
               <Text style={styles.resetBtnText}>
                 {loading ? "Updating..." : "Update Password 🔐"}
               </Text>
@@ -270,7 +355,6 @@ export default function ResetPasswordScreen() {
               <Text style={styles.loginHintLink}>Back to Login</Text>
             </TouchableOpacity>
           </View>
-
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -296,9 +380,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  brandName: { fontSize: 20, fontWeight: "900", color: "#FFFFFF", marginBottom: 20 },
+  brandName: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    marginBottom: 20,
+  },
   headerTitle: { fontSize: 30, fontWeight: "900", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 6 },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 6,
+  },
 
   // Step pills
   pillContainer: {
@@ -323,13 +416,24 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: "#FFFFFF" },
   pillDone: { backgroundColor: "rgba(255,255,255,0.6)" },
   pillText: { fontSize: 11, fontWeight: "700", color: "#0088ff" },
-  pillLine: { flex: 1, height: 2, backgroundColor: "rgba(255,255,255,0.3)", marginHorizontal: 6 },
+  pillLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    marginHorizontal: 6,
+  },
   pillLabelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 2,
   },
-  pillLabel: { fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: "600", width: 60, textAlign: "center" },
+  pillLabel: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.6)",
+    fontWeight: "600",
+    width: 60,
+    textAlign: "center",
+  },
 
   // Card
   form: {
@@ -343,7 +447,13 @@ const styles = StyleSheet.create({
   },
 
   // Inputs
-  label: { fontSize: 12, fontWeight: "600", color: "#1A1A2E", marginBottom: 8, marginTop: 16 },
+  label: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1A1A2E",
+    marginBottom: 8,
+    marginTop: 16,
+  },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -354,7 +464,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#1A1A2E", outlineStyle: "none" },
+  input: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: "#1A1A2E",
+    outlineStyle: "none",
+  },
   eyeBtn: { padding: 6 },
 
   // Strength bar
@@ -400,7 +516,11 @@ const styles = StyleSheet.create({
 
   // Button
   resetBtn: { borderRadius: 16, overflow: "hidden" },
-  resetBtnGradient: { paddingVertical: 15, alignItems: "center", borderRadius: 16 },
+  resetBtnGradient: {
+    paddingVertical: 15,
+    alignItems: "center",
+    borderRadius: 16,
+  },
   resetBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
 
   // Bottom hint

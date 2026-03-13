@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,82 +10,84 @@ import {
   Platform,
   Alert,
   StatusBar,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Toast from 'react-native-toast-message';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+import { loginUser } from "../../services/auth-services/loginApi";
 
 export default function LoginScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    // if (!email.trim()) {
-    //   Alert.alert('Validation Error', 'Please enter your email');
-    //   return;
-    // }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
       Toast.show({
-        type: 'error',        // 'success' | 'error' | 'info'
-        text1: 'Validation Error',
-        text2: 'Enter a valid email address',
-        position: 'bottom',      // 'top' | 'bottom'
+        type: "error",
+        text1: "Validation Error",
+        text2: "Enter a valid email address",
+        position: "bottom",
         visibilityTime: 3000,
       });
       return;
     }
+
     if (!password) {
       Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please enter your password',
-        position: 'bottom',
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please enter your password",
+        position: "bottom",
         visibilityTime: 3000,
       });
       return;
     }
 
     setIsLoading(true);
+
     try {
-      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_AUTH_API_URL}:5001/auth/login`, {
-        email,
-        password,
-      });
-      if(!response.data) {
+      const response = await axios.post(
+        "http://192.168.105.84:5001/auth/login",
+        {
+          email,
+          password,
+        },
+      );
+      if (!response.data) {
         Toast.show({
-        type: 'error',
-        text1: response.message || 'Error Logging In',
-        position: 'bottom',
-        visibilityTime: 3000,
-      });
+          type: "error",
+          text1: response.message || "Error Logging In",
+          position: "bottom",
+          visibilityTime: 3000,
+        });
       }
       const { accessToken, refreshToken, user } = response.data;
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshToken);
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+      await AsyncStorage.setItem("accessToken", accessToken);
+      await AsyncStorage.setItem("refreshToken", refreshToken);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
 
       Toast.show({
-        type: 'success',
-        text1: 'Login Successful',
-        position: 'bottom',
+        type: "success",
+        text1: "Login Successful",
+        position: "bottom",
         visibilityTime: 3000,
       });
 
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (error) {
-      console.error('Login error:', error);
       Toast.show({
-        type: 'error',
-        text1: error.response?.data?.message || 'Error Logging In',
-        position: 'bottom',
+        type: "error",
+        text1: error.response?.data?.message || "Error Logging In",
+        position: "bottom",
         visibilityTime: 3000,
       });
     } finally {
@@ -96,7 +98,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
 
@@ -107,19 +109,26 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <LinearGradient colors={['#c3b5b0', '#0088ff']} style={styles.header}>
+        <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
           <Text style={styles.brandName}>🛒 CampusCart</Text>
           <Text style={styles.headerTitle}>Welcome Back!</Text>
-          <Text style={styles.headerSubtitle}>Sign in to your campus marketplace</Text>
+          <Text style={styles.headerSubtitle}>
+            Sign in to your campus marketplace
+          </Text>
         </LinearGradient>
 
         {/* Tab Switch */}
         <View style={styles.tabContainer}>
           <View style={styles.tabSwitch}>
             <View style={[styles.tabBtn, styles.tabBtnActive]}>
-              <Text style={[styles.tabBtnText, styles.tabBtnTextActive]}>Login</Text>
+              <Text style={[styles.tabBtnText, styles.tabBtnTextActive]}>
+                Login
+              </Text>
             </View>
-            <TouchableOpacity style={styles.tabBtn} onPress={() => router.push('/signup')}>
+            <TouchableOpacity
+              style={styles.tabBtn}
+              onPress={() => router.push("/signup")}
+            >
               <Text style={styles.tabBtnText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
@@ -127,10 +136,14 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
-
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="mail-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <Ionicons
+              name="mail-outline"
+              size={18}
+              color="#8E8E9A"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="you@iit.ac.in"
@@ -146,7 +159,12 @@ export default function LoginScreen() {
 
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color="#8E8E9A" style={styles.inputIcon} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={18}
+              color="#8E8E9A"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Enter your password"
@@ -156,30 +174,48 @@ export default function LoginScreen() {
               secureTextEntry={!showPassword}
               blurOnSubmit={false}
             />
-            <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#8E8E9A" />
+            <TouchableOpacity
+              onPress={() => setShowPassword((p) => !p)}
+              style={styles.eyeBtn}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={18}
+                color="#8E8E9A"
+              />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.forgotRow} onPress={() => router.push("/verify-forgot-otp")}>
+          <TouchableOpacity
+            style={styles.forgotRow}
+            onPress={() => router.push("/verify-forgot-otp")}
+          >
             <Text style={styles.forgotText}>Forgot password?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleLogin} disabled={isLoading} style={styles.loginBtn}>
-            <LinearGradient colors={['#54d5eb', '#0088ff']} style={styles.loginBtnGradient}>
+          <TouchableOpacity
+            onPress={handleLogin}
+            disabled={isLoading}
+            style={styles.loginBtn}
+          >
+            <LinearGradient
+              colors={["#54d5eb", "#0088ff"]}
+              style={styles.loginBtnGradient}
+            >
               <Text style={styles.loginBtnText}>
-                {isLoading ? 'Logging in...' : 'Login to CampusCart 🚀'}
+                {isLoading ? "Logging in..." : "Login to CampusCart 🚀"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <View style={styles.signupHint}>
-            <Text style={styles.signupHintText}>New to campus marketplace? </Text>
-            <TouchableOpacity onPress={() => router.push('/signup')}>
+            <Text style={styles.signupHintText}>
+              New to campus marketplace?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/signup")}>
               <Text style={styles.signupHintLink}>Create Account</Text>
             </TouchableOpacity>
           </View>
-
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -187,30 +223,52 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0088ff' },
+  container: { flex: 1, backgroundColor: "#0088ff" },
   scroll: { flexGrow: 1 },
   header: {
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 32,
   },
-  brandName: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginBottom: 20 },
-  headerTitle: { fontSize: 30, fontWeight: '900', color: '#FFFFFF' },
-  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 6 },
-  tabContainer: { backgroundColor: '#0088ff', paddingHorizontal: 24, paddingVertical: 12 },
+  brandName: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    marginBottom: 20,
+  },
+  headerTitle: { fontSize: 30, fontWeight: "900", color: "#FFFFFF" },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 6,
+  },
+  tabContainer: {
+    backgroundColor: "#0088ff",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
   tabSwitch: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 14,
     padding: 5,
   },
-  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  tabBtnActive: { backgroundColor: '#FFFFFF' },
-  tabBtnText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
-  tabBtnTextActive: { color: '#0088ff' },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  tabBtnActive: { backgroundColor: "#FFFFFF" },
+  tabBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.7)",
+  },
+  tabBtnTextActive: { color: "#0088ff" },
   form: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 26,
@@ -218,27 +276,48 @@ const styles = StyleSheet.create({
     marginTop: -10,
     elevation: 5,
     shadowOpacity: 1,
-    elevation: 3
+    elevation: 3,
   },
-  label: { fontSize: 12, fontWeight: '600', color: '#1A1A2E', marginBottom: 8, marginTop: 16 },
+  label: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1A1A2E",
+    marginBottom: 8,
+    marginTop: 16,
+  },
   inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
-    borderColor: '#F0E8E2',
+    borderColor: "#F0E8E2",
     borderRadius: 14,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: '#1A1A2E', outlineStyle: "none" },
+  input: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: "#1A1A2E",
+    outlineStyle: "none",
+  },
   eyeBtn: { padding: 6 },
-  forgotRow: { alignItems: 'flex-end', marginTop: 10, marginBottom: 24 },
-  forgotText: { fontSize: 13, fontWeight: '600', color: '#0088ff' },
-  loginBtn: { borderRadius: 16, overflow: 'hidden' },
-  loginBtnGradient: { paddingVertical: 15, alignItems: 'center', borderRadius: 16 },
-  loginBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
-  signupHint: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
-  signupHintText: { fontSize: 13, color: '#8E8E9A' },
-  signupHintLink: { fontSize: 13, fontWeight: '700', color: '#0088ff' },
+  forgotRow: { alignItems: "flex-end", marginTop: 10, marginBottom: 24 },
+  forgotText: { fontSize: 13, fontWeight: "600", color: "#0088ff" },
+  loginBtn: { borderRadius: 16, overflow: "hidden" },
+  loginBtnGradient: {
+    paddingVertical: 15,
+    alignItems: "center",
+    borderRadius: 16,
+  },
+  loginBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+  signupHint: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  signupHintText: { fontSize: 13, color: "#8E8E9A" },
+  signupHintLink: { fontSize: 13, fontWeight: "700", color: "#0088ff" },
 });

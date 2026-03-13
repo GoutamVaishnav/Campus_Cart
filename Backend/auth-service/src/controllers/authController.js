@@ -182,9 +182,11 @@ export const verifyOTP = async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) return res.status(404).json({ message: "User not found", data: false });
+  if (!user)
+    return res.status(404).json({ message: "User not found", data: false });
 
-  if (user.otp !== otp) return res.status(400).json({ message: "Invalid OTP", data: false });
+  if (user.otp !== otp)
+    return res.status(400).json({ message: "Invalid OTP", data: false });
 
   if (user.otp_expiry < Date.now())
     return res.status(400).json({ message: "OTP expired", data: false });
@@ -208,13 +210,16 @@ export const login = async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) return res.status(404).json({ message: "User not found", data: false });
+  if (!user)
+    return res.status(404).json({ message: "User not found", data: false });
 
   const match = await bcrypt.compare(password, user.password_hash);
 
-  if (!match) return res.status(401).json({ message: "Invalid password", data: false });
+  if (!match)
+    return res.status(401).json({ message: "Invalid password", data: false });
 
-  if(!user.verified) return res.status(403).json({ message: "Email not verified", data: false });
+  if (!user.verified)
+    return res.status(403).json({ message: "Email not verified", data: false });
 
   const accessToken = generateAccessToken(user.id);
 
@@ -385,8 +390,9 @@ export const resetPassword = async (req, res) => {
     await user.save();
 
     res.json({
-      message: "Password reset successful. Please Login ... . redirect to login page",
-        data: true,
+      message:
+        "Password reset successful. Please Login ... . redirect to login page",
+      data: true,
     });
   } catch (error) {
     res.status(500).json({
@@ -405,6 +411,9 @@ export const refreshToken = async (req, res) => {
   if (!user) return res.status(403).json({ message: "Invalid refresh token" });
 
   const accessToken = generateAccessToken(user.id);
+  user.refresh_token = refreshToken;
+
+  await user.save();
 
   res.json({
     accessToken,
