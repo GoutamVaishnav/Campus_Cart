@@ -1,0 +1,23 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("BUY_DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../generated/buyClient"
+}
+
+model BuyProducts {
+    product_id  Int      @id @default(autoincrement())
+    title       String
+    description String
+    price       Int
+    college     String
+    category    String
+    location    String
+    seller_id   String
+    seller_name String
+    image_urls   String[]   // array of strings
+    created_at  DateTime @default(now())
+}

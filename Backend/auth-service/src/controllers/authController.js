@@ -221,9 +221,9 @@ export const login = async (req, res) => {
   if (!user.verified)
     return res.status(403).json({ message: "Email not verified", data: false });
 
-  const accessToken = generateAccessToken(user.id);
+  const accessToken = generateAccessToken(user);
 
-  const refreshToken = generateRefreshToken(user.id);
+  const refreshToken = generateRefreshToken(user);
 
   user.refresh_token = refreshToken;
 
@@ -410,7 +410,7 @@ export const refreshToken = async (req, res) => {
 
   if (!user) return res.status(403).json({ message: "Invalid refresh token" });
 
-  const accessToken = generateAccessToken(user.id);
+  const accessToken = generateAccessToken(user);
   user.refresh_token = refreshToken;
 
   await user.save();
