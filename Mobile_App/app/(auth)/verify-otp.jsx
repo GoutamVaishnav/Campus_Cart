@@ -99,13 +99,7 @@ export default function VerifyOTPScreen() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(
-        "http://192.168.105.84:5001/auth/verify-otp",
-        {
-          email,
-          otp: otpString,
-        },
-      );
+      const response = await verifyOtp({ email, otpString });
 
       if (!response.data) {
         shakeAnimation();
@@ -144,9 +138,7 @@ export default function VerifyOTPScreen() {
 
   const handleResend = async () => {
     try {
-      await axios.post("http://192.168.105.84:5001/auth/forgot-password", {
-        email,
-      });
+      await forgotPassword({ email });
       setTimer(60);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();

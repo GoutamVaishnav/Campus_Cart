@@ -90,10 +90,7 @@ export default function ResetPasswordScreen() {
 
     try {
       setLoading(true);
-      const response = await axios.post(
-        "http://192.168.105.84:5001/auth/reset-password",
-        { email, newPassword, confirmPassword },
-      );
+      const response = await resetPassword(email, newPassword, confirmPassword);
       Toast.show({
         type: "success",
         text1: "Success",

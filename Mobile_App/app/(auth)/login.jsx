@@ -55,13 +55,7 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://192.168.105.84:5001/auth/login",
-        {
-          email,
-          password,
-        },
-      );
+      const response = await loginUser(email, password);
       if (!response.data) {
         Toast.show({
           type: "error",
@@ -70,10 +64,10 @@ export default function LoginScreen() {
           visibilityTime: 3000,
         });
       }
-      const { accessToken, refreshToken, user } = response.data;
-      await AsyncStorage.setItem("accessToken", accessToken);
-      await AsyncStorage.setItem("refreshToken", refreshToken);
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+      // const { accessToken, refreshToken, user } = response.data;
+      // await AsyncStorage.setItem("accessToken", accessToken);
+      // await AsyncStorage.setItem("refreshToken", refreshToken);
+      // await AsyncStorage.setItem("user", JSON.stringify(user));
 
       Toast.show({
         type: "success",
@@ -100,7 +94,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#0088ff" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -109,12 +103,14 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
-          <Text style={styles.brandName}>🛒 CampusCart</Text>
-          <Text style={styles.headerTitle}>Welcome Back!</Text>
-          <Text style={styles.headerSubtitle}>
-            Sign in to your campus marketplace
-          </Text>
+        <LinearGradient colors={["#c3b5b0", "#1160a6"]} style={styles.header}>
+          <Text style={styles.brandName}>CampusCart</Text>
+          <View>
+            <Text style={styles.headerTitle}>Welcome Back!</Text>
+            <Text style={styles.headerSubtitle}>
+              Sign in to your campus marketplace
+            </Text>
+          </View>
         </LinearGradient>
 
         {/* Tab Switch */}
@@ -199,7 +195,7 @@ export default function LoginScreen() {
             style={styles.loginBtn}
           >
             <LinearGradient
-              colors={["#54d5eb", "#0088ff"]}
+              colors={["#54d5eb", "#1160a6"]}
               style={styles.loginBtnGradient}
             >
               <Text style={styles.loginBtnText}>
@@ -229,21 +225,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 32,
+    height: 360,
+    justifyContent: "space-evenly",
   },
   brandName: {
-    fontSize: 20,
+    fontSize: 48,
     fontWeight: "900",
     color: "#FFFFFF",
     marginBottom: 20,
   },
-  headerTitle: { fontSize: 30, fontWeight: "900", color: "#FFFFFF" },
+  headerTitle: { fontSize: 40, fontWeight: "900", color: "#FFFFFF" },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 20,
     color: "rgba(255,255,255,0.8)",
     marginTop: 6,
   },
   tabContainer: {
-    backgroundColor: "#0088ff",
+    backgroundColor: "#1160a6",
     paddingHorizontal: 24,
     paddingVertical: 12,
   },

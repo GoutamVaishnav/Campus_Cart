@@ -220,16 +220,13 @@ export default function SignupScreen() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://192.168.105.84:5001/auth/signup",
-        {
-          name: fullName,
-          email,
-          phone: mobile,
-          password,
-          college,
-        },
-      );
+      const response = await signupUser({
+        name: fullName,
+        email,
+        phone: mobile,
+        password,
+        college,
+      });
       console.log("signup response", response.data);
 
       Toast.show({
