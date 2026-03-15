@@ -13,5 +13,5 @@ export const loginUser = async (email, password) => {
 
   await saveUser(user);
 
-  return response.data;
+  return response;
 };
