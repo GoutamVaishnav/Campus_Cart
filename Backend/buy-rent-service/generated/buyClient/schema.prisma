@@ -16,8 +16,9 @@ model BuyProducts {
   college     String
   category    String
   location    String
-  seller_id   Int
+  type        String   @default("SELL")
+  seller_id   String
   seller_name String
-  image_url   String
+  image_urls  String[] // array of strings
   created_at  DateTime @default(now())
 }

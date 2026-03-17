@@ -873,6 +873,7 @@ export namespace Prisma {
     college: string | null
     category: string | null
     location: string | null
+    type: string | null
     seller_id: string | null
     seller_name: string | null
     created_at: Date | null
@@ -886,6 +887,7 @@ export namespace Prisma {
     college: string | null
     category: string | null
     location: string | null
+    type: string | null
     seller_id: string | null
     seller_name: string | null
     created_at: Date | null
@@ -899,6 +901,7 @@ export namespace Prisma {
     college: number
     category: number
     location: number
+    type: number
     seller_id: number
     seller_name: number
     image_urls: number
@@ -925,6 +928,7 @@ export namespace Prisma {
     college?: true
     category?: true
     location?: true
+    type?: true
     seller_id?: true
     seller_name?: true
     created_at?: true
@@ -938,6 +942,7 @@ export namespace Prisma {
     college?: true
     category?: true
     location?: true
+    type?: true
     seller_id?: true
     seller_name?: true
     created_at?: true
@@ -951,6 +956,7 @@ export namespace Prisma {
     college?: true
     category?: true
     location?: true
+    type?: true
     seller_id?: true
     seller_name?: true
     image_urls?: true
@@ -1052,6 +1058,7 @@ export namespace Prisma {
     college: string
     category: string
     location: string
+    type: string
     seller_id: string
     seller_name: string
     image_urls: string[]
@@ -1085,6 +1092,7 @@ export namespace Prisma {
     college?: boolean
     category?: boolean
     location?: boolean
+    type?: boolean
     seller_id?: boolean
     seller_name?: boolean
     image_urls?: boolean
@@ -1099,6 +1107,7 @@ export namespace Prisma {
     college?: boolean
     category?: boolean
     location?: boolean
+    type?: boolean
     seller_id?: boolean
     seller_name?: boolean
     image_urls?: boolean
@@ -1113,6 +1122,7 @@ export namespace Prisma {
     college?: boolean
     category?: boolean
     location?: boolean
+    type?: boolean
     seller_id?: boolean
     seller_name?: boolean
     image_urls?: boolean
@@ -1131,6 +1141,7 @@ export namespace Prisma {
       college: string
       category: string
       location: string
+      type: string
       seller_id: string
       seller_name: string
       image_urls: string[]
@@ -1535,6 +1546,7 @@ export namespace Prisma {
     readonly college: FieldRef<"RentProducts", 'String'>
     readonly category: FieldRef<"RentProducts", 'String'>
     readonly location: FieldRef<"RentProducts", 'String'>
+    readonly type: FieldRef<"RentProducts", 'String'>
     readonly seller_id: FieldRef<"RentProducts", 'String'>
     readonly seller_name: FieldRef<"RentProducts", 'String'>
     readonly image_urls: FieldRef<"RentProducts", 'String[]'>
@@ -1849,6 +1861,7 @@ export namespace Prisma {
     college: 'college',
     category: 'category',
     location: 'location',
+    type: 'type',
     seller_id: 'seller_id',
     seller_name: 'seller_name',
     image_urls: 'image_urls',
@@ -1949,6 +1962,7 @@ export namespace Prisma {
     college?: StringFilter<"RentProducts"> | string
     category?: StringFilter<"RentProducts"> | string
     location?: StringFilter<"RentProducts"> | string
+    type?: StringFilter<"RentProducts"> | string
     seller_id?: StringFilter<"RentProducts"> | string
     seller_name?: StringFilter<"RentProducts"> | string
     image_urls?: StringNullableListFilter<"RentProducts">
@@ -1963,6 +1977,7 @@ export namespace Prisma {
     college?: SortOrder
     category?: SortOrder
     location?: SortOrder
+    type?: SortOrder
     seller_id?: SortOrder
     seller_name?: SortOrder
     image_urls?: SortOrder
@@ -1980,6 +1995,7 @@ export namespace Prisma {
     college?: StringFilter<"RentProducts"> | string
     category?: StringFilter<"RentProducts"> | string
     location?: StringFilter<"RentProducts"> | string
+    type?: StringFilter<"RentProducts"> | string
     seller_id?: StringFilter<"RentProducts"> | string
     seller_name?: StringFilter<"RentProducts"> | string
     image_urls?: StringNullableListFilter<"RentProducts">
@@ -1994,6 +2010,7 @@ export namespace Prisma {
     college?: SortOrder
     category?: SortOrder
     location?: SortOrder
+    type?: SortOrder
     seller_id?: SortOrder
     seller_name?: SortOrder
     image_urls?: SortOrder
@@ -2016,6 +2033,7 @@ export namespace Prisma {
     college?: StringWithAggregatesFilter<"RentProducts"> | string
     category?: StringWithAggregatesFilter<"RentProducts"> | string
     location?: StringWithAggregatesFilter<"RentProducts"> | string
+    type?: StringWithAggregatesFilter<"RentProducts"> | string
     seller_id?: StringWithAggregatesFilter<"RentProducts"> | string
     seller_name?: StringWithAggregatesFilter<"RentProducts"> | string
     image_urls?: StringNullableListFilter<"RentProducts">
@@ -2029,6 +2047,7 @@ export namespace Prisma {
     college: string
     category: string
     location: string
+    type?: string
     seller_id: string
     seller_name: string
     image_urls?: RentProductsCreateimage_urlsInput | string[]
@@ -2043,6 +2062,7 @@ export namespace Prisma {
     college: string
     category: string
     location: string
+    type?: string
     seller_id: string
     seller_name: string
     image_urls?: RentProductsCreateimage_urlsInput | string[]
@@ -2056,6 +2076,7 @@ export namespace Prisma {
     college?: StringFieldUpdateOperationsInput | string
     category?: StringFieldUpdateOperationsInput | string
     location?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
     seller_id?: StringFieldUpdateOperationsInput | string
     seller_name?: StringFieldUpdateOperationsInput | string
     image_urls?: RentProductsUpdateimage_urlsInput | string[]
@@ -2070,6 +2091,7 @@ export namespace Prisma {
     college?: StringFieldUpdateOperationsInput | string
     category?: StringFieldUpdateOperationsInput | string
     location?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
     seller_id?: StringFieldUpdateOperationsInput | string
     seller_name?: StringFieldUpdateOperationsInput | string
     image_urls?: RentProductsUpdateimage_urlsInput | string[]
@@ -2084,6 +2106,7 @@ export namespace Prisma {
     college: string
     category: string
     location: string
+    type?: string
     seller_id: string
     seller_name: string
     image_urls?: RentProductsCreateimage_urlsInput | string[]
@@ -2097,6 +2120,7 @@ export namespace Prisma {
     college?: StringFieldUpdateOperationsInput | string
     category?: StringFieldUpdateOperationsInput | string
     location?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
     seller_id?: StringFieldUpdateOperationsInput | string
     seller_name?: StringFieldUpdateOperationsInput | string
     image_urls?: RentProductsUpdateimage_urlsInput | string[]
@@ -2111,6 +2135,7 @@ export namespace Prisma {
     college?: StringFieldUpdateOperationsInput | string
     category?: StringFieldUpdateOperationsInput | string
     location?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
     seller_id?: StringFieldUpdateOperationsInput | string
     seller_name?: StringFieldUpdateOperationsInput | string
     image_urls?: RentProductsUpdateimage_urlsInput | string[]
@@ -2170,6 +2195,7 @@ export namespace Prisma {
     college?: SortOrder
     category?: SortOrder
     location?: SortOrder
+    type?: SortOrder
     seller_id?: SortOrder
     seller_name?: SortOrder
     image_urls?: SortOrder
@@ -2189,6 +2215,7 @@ export namespace Prisma {
     college?: SortOrder
     category?: SortOrder
     location?: SortOrder
+    type?: SortOrder
     seller_id?: SortOrder
     seller_name?: SortOrder
     created_at?: SortOrder
@@ -2202,6 +2229,7 @@ export namespace Prisma {
     college?: SortOrder
     category?: SortOrder
     location?: SortOrder
+    type?: SortOrder
     seller_id?: SortOrder
     seller_name?: SortOrder
     created_at?: SortOrder

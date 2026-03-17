@@ -10,10 +10,14 @@ import api from "../api";
 // const LISTING_TYPES = ["SELL", "RENT", "LOST", "FOUND"];
 
 export const postSellProduct = async (productData) => {
-  await api.post("/sell", productData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+  console.log(productData._parts);
+
+  const response = await api.post("/buy-rent/buy/products", productData, {
+    // transformRequest: (data, headers) => {
+    //   delete headers["Content-Type"]; // Let axios/RN set it with boundary
+    //   return data;
+    // },
     timeout: 15000,
   });
+  return response.data;
 };

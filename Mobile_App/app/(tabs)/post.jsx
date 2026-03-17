@@ -25,7 +25,11 @@ import axios from "axios";
 import { postSellProduct } from "../../services/buy-sell-services/post-product";
 import { postRentProduct } from "../../services/rent-service/post-product";
 import { postLostFoundProduct } from "../../services/lost-found-service/post-product";
-
+import useBuyStore from "@/store/useBuyStore";
+import useRentStore from "@/store/useRentStore";
+import useLostFoundStore from "@/store/useLostFoundStore";
+import useMyListingsStore from "@/store/useMyListingsStore";
+import useUserStore from "@/store/useUserStore";
 // ─────────────────────────────────────────────────────────────
 // ⚙️  Update these to your actual microservice IPs / ports
 // ─────────────────────────────────────────────────────────────
@@ -85,7 +89,7 @@ const API_MAP = {
 };
 
 export default function PostScreen() {
-  const [user, setUser] = useState(null);
+  const user = useUserStore((s) => s.user);
   const [accessToken, setAccessToken] = useState(null);
 
   // Form state
@@ -110,23 +114,23 @@ export default function PostScreen() {
 
   // ── Load user + token ────────────────────────────────────────
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [[, userData], [, token]] = await AsyncStorage.multiGet([
-          "user",
-          "accessToken",
-        ]);
-        if (userData) setUser(JSON.parse(userData));
-        if (token) setAccessToken(token);
-      } catch {
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Failed to load user data.",
-        });
-      }
-    };
-    load();
+    // const load = async () => {
+    //   try {
+    //     const [[, userData], [, token]] = await AsyncStorage.multiGet([
+    //       "user",
+    //       "accessToken",
+    //     ]);
+    //     if (userData) setUser(JSON.parse(userData));
+    //     if (token) setAccessToken(token);
+    //   } catch {
+    //     Toast.show({
+    //       type: "error",
+    //       text1: "Error",
+    //       text2: "Failed to load user data.",
+    //     });
+    //   }
+    // };
+    // load();
 
     Animated.stagger(80, [
       Animated.spring(headerAnim, {
@@ -197,9 +201,9 @@ export default function PostScreen() {
     fd.append("category", category);
     fd.append("type", listingType);
     fd.append("location", location.trim());
-    fd.append("seller", user?.name ?? "");
+    fd.append("name", user?.name ?? "");
     fd.append("college", user?.college ?? "");
-    fd.append("sellerId", user?.id ?? "");
+    fd.append("id", user?.id ?? "");
 
     if (showPrice) fd.append("price", price.trim());
 
@@ -207,12 +211,14 @@ export default function PostScreen() {
     images.forEach((uri) => {
       const filename = uri.split("/").pop() ?? "image.jpg";
       const ext = filename.split(".").pop()?.toLowerCase();
+
       fd.append("images", {
         uri,
         name: filename,
         type: ext === "png" ? "image/png" : "image/jpeg",
-      });
+      }); // Cast to `any` if using TypeScript
     });
+    console.log(images);
 
     return fd;
   };
@@ -259,8 +265,18 @@ export default function PostScreen() {
         throw new Error("Invalid listing type");
       }
 
-      await apiCall(buildFormData());
-
+      const response = await apiCall(buildFormData());
+      const newProduct = response.product;
+      if (listingType === "SELL") {
+        useBuyStore.getState().addProduct(newProduct);
+        useMyListingsStore.getState().addSellListing(newProduct);
+      } else if (listingType === "RENT") {
+        useRentStore.getState().addProduct(newProduct);
+        useMyListingsStore.getState().addRentListing(newProduct);
+      } else {
+        useLostFoundStore.getState().addItem(newProduct);
+        useMyListingsStore.getState().addLostFoundListing(newProduct);
+      }
       Toast.show({
         type: "success",
         text1: "Listing Posted! 🎉",
@@ -279,6 +295,8 @@ export default function PostScreen() {
 
       router.replace("/(tabs)");
     } catch (e) {
+      console.log(e.code);
+
       const msg = axios.isAxiosError(e)
         ? (e.response?.data?.message ?? e.message)
         : "Something went wrong.";

@@ -2,6 +2,8 @@ import { rentDb } from "../../config/rentDb.js";
 import { uploadCompressedImage } from "../../utils/uploadImage.js";
 
 export const getProducts = async (req, res, next) => {
+  console.log("api");
+
   try {
     const products = await rentDb.rentProducts.findMany({
       orderBy: { created_at: "desc" },
@@ -77,6 +79,7 @@ export const createProduct = async (req, res, next) => {
         college: req.body.college,
         category: req.body.category,
         location: req.body.location,
+        type: req.body.type,
         seller_id: req.user.id,
         seller_name: req.user.name,
         image_urls: imageUrls.slice(0, 4), // max 4 images

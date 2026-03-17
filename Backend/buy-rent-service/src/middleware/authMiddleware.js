@@ -19,6 +19,8 @@
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
+  // console.log("hitting");
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {

@@ -16,6 +16,7 @@ model RentProducts {
     college       String
     category      String
     location      String
+    type          String   @default("RENT")
     seller_id     String
     seller_name   String
     image_urls   String[]   // array of strings

@@ -10,36 +10,33 @@ import {
   ScrollView,
   Platform,
   Image,
-  Alert,
   Modal,
   FlatList,
   KeyboardAvoidingView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import Toast from "react-native-root-toast";
-import { editSellProduct } from "../../services/buy-sell-services/edit-product";
-import { deleteSellProduct } from "../../services/buy-sell-services/edit-product";
-import { editRentProduct } from "../../services/rent-service/edit-product";
-import { deleteRentProduct } from "../../services/rent-service/edit-product";
-import { editLostFoundProduct } from "../../services/lost-found-service/edit-product";
-import { deleteLostFoundProduct } from "../../services/lost-found-service/edit-product";
-
-const CATEGORIES = [
-  "Books & Notes",
-  "Electronics",
-  "Furniture",
-  "Clothing",
-  "Sports & Fitness",
-  "Stationery",
-  "Kitchen & Appliances",
-  "Cycles & Transport",
-  "Other",
-];
-
-const LOST_FOUND_TYPES = ["LOST", "FOUND"];
+import Toast from "react-native-toast-message";
+import useBuyStore from "@/store/useBuyStore";
+import useRentStore from "@/store/useRentStore";
+import useLostFoundStore from "@/store/useLostFoundStore";
+import useMyListingsStore from "@/store/useMyListingsStore";
+import {
+  editSellProduct,
+  deleteSellProduct,
+} from "../../services/buy-sell-services/edit-product";
+import {
+  editRentProduct,
+  deleteRentProduct,
+} from "../../services/rent-service/edit-product";
+import {
+  editLostFoundProduct,
+  deleteLostFoundProduct,
+} from "../../services/lost-found-service/edit-product";
 
 const EDIT_API_MAP = {
   SELL: editSellProduct,
@@ -55,6 +52,20 @@ const DELETE_API_MAP = {
   FOUND: deleteLostFoundProduct,
 };
 
+const CATEGORIES = [
+  "Books & Notes",
+  "Electronics",
+  "Furniture",
+  "Clothing",
+  "Sports & Fitness",
+  "Stationery",
+  "Kitchen & Appliances",
+  "Cycles & Transport",
+  "Other",
+];
+
+const LOST_FOUND_TYPES = ["LOST", "FOUND"];
+
 export default function EditListingScreen() {
   const { item } = useLocalSearchParams();
   const product = JSON.parse(item);
@@ -65,29 +76,28 @@ export default function EditListingScreen() {
     product.type === "LOST/FOUND";
   const isRent = product.type === "RENT";
 
-  // Form state — pre-filled from product
+  // ── Form state — pre-filled from product ─────────────────────
   const [title, setTitle] = useState(product.title || "");
   const [description, setDescription] = useState(product.description || "");
   const [price, setPrice] = useState(
-    product.price ? String(product.price) : "",
+    String(product.price ?? product.price_per_day ?? ""), // ✅ fix: rent uses price_per_day
   );
   const [category, setCategory] = useState(product.category || "");
   const [lostFoundType, setLostFoundType] = useState(
     product.type === "LOST" ? "LOST" : product.type === "FOUND" ? "FOUND" : "",
   );
-  const [images, setImages] = useState(product.images || []);
+  const [images, setImages] = useState(product.image_urls || []); // ✅ fix: image_urls not images
 
-  // UI state
+  // ── UI state ──────────────────────────────────────────────────
   const [categoryModal, setCategoryModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Animations
+  // ── Animations ────────────────────────────────────────────────
   const headerAnim = useRef(new Animated.Value(0)).current;
   const formAnim = useRef(new Animated.Value(0)).current;
-  const deleteShakeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.stagger(80, [
@@ -106,14 +116,15 @@ export default function EditListingScreen() {
     ]).start();
   }, []);
 
-  // Track changes
+  // ── Track changes ─────────────────────────────────────────────
   useEffect(() => {
+    const originalPrice = String(product.price ?? product.price_per_day ?? "");
     const changed =
       title !== product.title ||
       description !== product.description ||
-      price !== String(product.price || "") ||
+      price !== originalPrice ||
       category !== product.category ||
-      images.join() !== product.images.join() ||
+      images.join() !== (product.image_urls ?? []).join() || // ✅ fix: image_urls not images
       (isLostFound && lostFoundType !== product.type);
     setHasChanges(changed);
   }, [title, description, price, category, images, lostFoundType]);
@@ -132,22 +143,17 @@ export default function EditListingScreen() {
 
   const pickImage = async () => {
     if (images.length >= 3) {
-      Toast.show("Maximum 3 images allowed", {
-        duration: Toast.durations.LONG,
-      });
-
+      Alert.alert("Limit Reached", "Maximum 3 images allowed.");
       return;
     }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Toast.show("Camera roll access is required", {
-        duration: Toast.durations.LONG,
-      });
+      Alert.alert("Permission Denied", "Camera roll access is required.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      mediaTypes: ["images"],
+      allowsEditing: false,
       quality: 0.5,
     });
     if (!result.canceled) {
@@ -157,50 +163,45 @@ export default function EditListingScreen() {
 
   const removeImage = (index) => {
     if (images.length === 1) {
-      Toast.show("At least 1 image is required", {
-        duration: Toast.durations.LONG,
+      Toast.show({
+        type: "error",
+        text1: "Cannot Remove",
+        text2: "At least 1 image is required.",
       });
-
       return;
     }
-    Alert.alert("Remove Image", "Remove this image from the listing?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: () => setImages((prev) => prev.filter((_, i) => i !== index)),
-      },
-    ]);
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // ── Build FormData ────────────────────────────────────────────
   const buildFormData = () => {
     const fd = new FormData();
-
     fd.append("title", title.trim());
     fd.append("description", description.trim());
     fd.append("category", category);
-    fd.append("type", product.type);
-    fd.append("location", product.location || "Unknown");
-    fd.append("seller", product?.name ?? "");
-    fd.append("college", product?.college ?? "");
-    fd.append("sellerId", product?.sellerId ?? "");
-
+    if (isLostFound) fd.append("type", lostFoundType);
     if (!isLostFound) fd.append("price", price.trim());
 
-    // Attach each image as a file blob
     images.forEach((uri) => {
-      const filename = uri.split("/").pop() ?? "image.jpg";
-      const ext = filename.split(".").pop()?.toLowerCase();
-      fd.append("images", {
-        uri,
-        name: filename,
-        type: ext === "png" ? "image/png" : "image/jpeg",
-      });
+      if (uri.startsWith("file://") || uri.startsWith("content://")) {
+        // New image picked by user
+        const filename = uri.split("/").pop() ?? "image.jpg";
+        const ext = filename.split(".").pop()?.toLowerCase();
+        fd.append("images", {
+          uri,
+          name: filename,
+          type: ext === "png" ? "image/png" : "image/jpeg",
+        });
+      } else {
+        // Existing remote URL — tell backend to keep it
+        fd.append("existingImages", uri);
+      }
     });
 
     return fd;
   };
 
+  // ── Save ──────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!title.trim()) {
       Toast.show({
@@ -223,6 +224,14 @@ export default function EditListingScreen() {
         type: "error",
         text1: "Missing Field",
         text2: "Please enter a price.",
+      });
+      return;
+    }
+    if (!isLostFound && isNaN(Number(price))) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Price",
+        text2: "Price must be a valid number.",
       });
       return;
     }
@@ -255,52 +264,80 @@ export default function EditListingScreen() {
     try {
       const formData = buildFormData();
       const apiCall = EDIT_API_MAP[product.type];
-      await apiCall({ formData }); // TODO: Implement API calls in api.js
+      const response = await apiCall({
+        formData,
+        id: product.product_id,
+      }); // ✅ fix: product_id not id
+
+      const updatedProduct = response.product; // ✅ fix: response structure
+
+      if (isLostFound) {
+        useLostFoundStore.getState().updateItem(updatedProduct);
+        useMyListingsStore.getState().updateLostFoundListing(updatedProduct);
+      } else if (isRent) {
+        useRentStore.getState().updateProduct(updatedProduct);
+        useMyListingsStore.getState().updateRentListing(updatedProduct);
+      } else {
+        useBuyStore.getState().updateProduct(updatedProduct);
+        useMyListingsStore.getState().updateSellListing(updatedProduct);
+      }
+
       Toast.show({
         type: "success",
-        text1: "Listing Updated",
-        text2: "Your changes have been saved.",
+        text1: "Updated! ✅",
+        text2: "Your listing has been updated.",
+        visibilityTime: 2500,
       });
-      setHasChanges(false);
-      router.push("/my-listings");
+
+      setTimeout(() => router.back(), 800);
     } catch (e) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to update listing. Please try again.",
-      });
+      console.log(e.code);
+
+      const msg = e.response?.data?.message ?? "Failed to update listing.";
+      Toast.show({ type: "error", text1: "Update Failed", text2: msg });
     } finally {
       setSaving(false);
     }
   };
 
+  // ── Delete ────────────────────────────────────────────────────
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      // TODO: Replace with your API call
-      // await axios.delete(`http://SERVICE/products/${product.id}`);
       const apiCall = DELETE_API_MAP[product.type];
-      await apiCall({ id: product.id });
+      await apiCall({ id: product.product_id }); // ✅ fix: product_id not id
+
+      if (isLostFound) {
+        useLostFoundStore.getState().removeItem(product.product_id); // ✅
+        useMyListingsStore
+          .getState()
+          .removeLostFoundListing(product.product_id); // ✅
+      } else if (isRent) {
+        useRentStore.getState().removeProduct(product.product_id); // ✅
+        useMyListingsStore.getState().removeRentListing(product.product_id); // ✅
+      } else {
+        useBuyStore.getState().removeProduct(product.product_id); // ✅
+        useMyListingsStore.getState().removeSellListing(product.product_id); // ✅
+      }
 
       setDeleteModal(false);
+
       Toast.show({
         type: "success",
-        text1: "Listing Deleted",
-        text2: `"${product.title}" has been removed from your listings.`,
+        text1: "Deleted! 🗑️",
+        text2: "Your listing has been removed.",
+        visibilityTime: 2500,
       });
-      router.push("/my-listings");
+
+      setTimeout(() => router.back(), 800);
     } catch (e) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to delete listing. Please try again.",
-      });
+      const msg = e.response?.data?.message ?? "Failed to delete listing.";
+      Toast.show({ type: "error", text1: "Delete Failed", text2: msg });
     } finally {
       setDeleting(false);
     }
   };
 
-  // Header accent color based on type
   const typeColor = isLostFound ? "#1A1A2E" : isRent ? "#00aacc" : "#0088ff";
   const typeLabel = isLostFound ? "Lost & Found" : isRent ? "Rent" : "Sell";
   const typeIcon = isLostFound
@@ -331,8 +368,7 @@ export default function EditListingScreen() {
               >
                 <Ionicons name="arrow-back" size={20} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.brandName}>🛒 CampusCart</Text>
-              {/* Delete button in header */}
+              <Text style={styles.brandName}>CampusCart</Text>
               <TouchableOpacity
                 style={styles.deleteHeaderBtn}
                 onPress={() => setDeleteModal(true)}
@@ -343,15 +379,13 @@ export default function EditListingScreen() {
 
             <Text style={styles.headerTitle}>Edit Listing</Text>
 
-            {/* Type pill */}
             <View style={styles.typePill}>
               <Ionicons name={typeIcon} size={14} color="#fff" />
               <Text style={styles.typePillText}>{typeLabel}</Text>
               <View style={styles.typePillDivider} />
-              <Text style={styles.typePillId}>ID: {product.id}</Text>
+              <Text style={styles.typePillId}>ID: {product.product_id}</Text>
             </View>
 
-            {/* Changes indicator */}
             {hasChanges && (
               <View style={styles.changesBanner}>
                 <Ionicons name="pencil" size={13} color="#FFA500" />
@@ -556,10 +590,24 @@ export default function EditListingScreen() {
           </View>
 
           <View style={styles.metaGrid}>
-            <MetaItem label="Seller" value={product.seller} />
+            <MetaItem label="Seller" value={product.seller_name} />
+            {/* ✅ fix: seller_name not seller */}
             <MetaItem label="College" value={product.college} />
-            <MetaItem label="Posted" value={product.createdAt} />
-            <MetaItem label="Item ID" value={product.id} mono />
+            <MetaItem
+              label="Posted"
+              value={
+                product.created_at
+                  ? new Date(product.created_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "—"
+              }
+            />
+            {/* ✅ fix: formatted date */}
+            <MetaItem label="Item ID" value={String(product.product_id)} mono />
+            {/* ✅ fix: product_id not id */}
           </View>
 
           {/* ── Save Button ─────────────────── */}
@@ -575,12 +623,20 @@ export default function EditListingScreen() {
               }
               style={styles.saveBtnGradient}
             >
-              <Ionicons
-                name={saving ? "reload-outline" : "checkmark-circle-outline"}
-                size={18}
-                color="#fff"
-                style={{ marginRight: 8 }}
-              />
+              {saving ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                  style={{ marginRight: 8 }}
+                />
+              ) : (
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color="#fff"
+                  style={{ marginRight: 8 }}
+                />
+              )}
               <Text style={styles.saveBtnText}>
                 {saving
                   ? "Saving..."
@@ -653,7 +709,6 @@ export default function EditListingScreen() {
       <Modal visible={deleteModal} transparent animationType="fade">
         <View style={styles.deleteModalOverlay}>
           <View style={styles.deleteModalCard}>
-            {/* Icon */}
             <View style={styles.deleteIconCircle}>
               <Ionicons name="trash" size={32} color="#FF4D4D" />
             </View>
@@ -667,7 +722,7 @@ export default function EditListingScreen() {
             {/* Product preview */}
             <View style={styles.deletePreview}>
               <Image
-                source={{ uri: product.images[0] }}
+                source={{ uri: product.image_urls?.[0] }} // ✅ fix: image_urls not images
                 style={styles.deletePreviewImg}
               />
               <View style={{ flex: 1, marginLeft: 12 }}>
@@ -677,15 +732,15 @@ export default function EditListingScreen() {
                 <Text style={styles.deletePreviewMeta}>
                   {product.category} · {product.type}
                 </Text>
-                {product.price && (
+                {(product.price || product.price_per_day) && (
+                  // ✅ fix: handle both price fields
                   <Text style={styles.deletePreviewPrice}>
-                    ₹{product.price}
+                    ₹{product.price ?? product.price_per_day}
                   </Text>
                 )}
               </View>
             </View>
 
-            {/* Buttons */}
             <View style={styles.deleteModalBtns}>
               <TouchableOpacity
                 style={styles.cancelBtn}
@@ -703,12 +758,20 @@ export default function EditListingScreen() {
                   colors={["#ff6b6b", "#ee4444"]}
                   style={styles.confirmDeleteGradient}
                 >
-                  <Ionicons
-                    name="trash-outline"
-                    size={16}
-                    color="#fff"
-                    style={{ marginRight: 6 }}
-                  />
+                  {deleting ? (
+                    <ActivityIndicator
+                      size="small"
+                      color="#fff"
+                      style={{ marginRight: 6 }}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="trash-outline"
+                      size={16}
+                      color="#fff"
+                      style={{ marginRight: 6 }}
+                    />
+                  )}
                   <Text style={styles.confirmDeleteText}>
                     {deleting ? "Deleting..." : "Yes, Delete"}
                   </Text>
@@ -742,7 +805,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0088ff" },
   scroll: { paddingBottom: 40 },
 
-  // Header
   header: {
     paddingTop: Platform.OS === "ios" ? 56 : 44,
     paddingHorizontal: 24,
@@ -815,7 +877,6 @@ const styles = StyleSheet.create({
   },
   changesBannerText: { fontSize: 12, fontWeight: "600", color: "#FFA500" },
 
-  // Form card
   formCard: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 28,
@@ -825,7 +886,6 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
 
-  // Section
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -846,7 +906,6 @@ const styles = StyleSheet.create({
   },
   sectionHint: { fontSize: 10, color: "#8E8E9A", fontWeight: "500" },
 
-  // Type toggle (lost/found)
   typeToggleRow: {
     flexDirection: "row",
     backgroundColor: "#F7F8FA",
@@ -872,7 +931,6 @@ const styles = StyleSheet.create({
   typeToggleText: { fontSize: 14, fontWeight: "700", color: "#8E8E9A" },
   typeToggleTextActive: { color: "#0088ff" },
 
-  // Inputs
   label: {
     fontSize: 12,
     fontWeight: "600",
@@ -913,7 +971,6 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
 
-  // Images
   imageGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
   imageThumb: { width: 100, height: 100, borderRadius: 14, overflow: "hidden" },
   thumbImg: { width: "100%", height: "100%" },
@@ -955,14 +1012,8 @@ const styles = StyleSheet.create({
   addImgText: { fontSize: 11, fontWeight: "700", color: "#0088ff" },
   addImgCount: { fontSize: 10, color: "#8E8E9A" },
 
-  // Meta grid
-  metaGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
+  metaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 
-  // Save
   saveBtn: { borderRadius: 16, overflow: "hidden", marginTop: 28 },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnGradient: {
@@ -974,7 +1025,6 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { fontSize: 15, fontWeight: "800", color: "#fff" },
 
-  // Delete
   deleteBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -988,7 +1038,6 @@ const styles = StyleSheet.create({
   },
   deleteBtnText: { fontSize: 14, fontWeight: "700", color: "#FF4D4D" },
 
-  // Category modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   modalSheet: {
     backgroundColor: "#fff",
@@ -1029,7 +1078,6 @@ const styles = StyleSheet.create({
   modalItemText: { fontSize: 14, fontWeight: "500", color: "#1A1A2E" },
   modalItemTextActive: { fontWeight: "700", color: "#0088ff" },
 
-  // Delete confirm modal
   deleteModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",

@@ -13,6 +13,7 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -87,10 +88,22 @@ export default function ProductListingScreen({
   PRODUCTS = [],
   page = "buy",
   mode = "browse",
+  isLoading = false, // ← from store
+  error = null, // ← from store
+  onRefresh = null, // ← force refetch callback
 }) {
   const config = PAGE_CONFIG[page] ?? PAGE_CONFIG.buy;
   const isManage = mode === "manage";
   const isLostFound = page === "lost-found";
+  const [refreshing, setRefreshing] = useState(false);
+  console.log(PRODUCTS);
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  };
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -147,20 +160,23 @@ export default function ProductListingScreen({
     const matchSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.description?.toLowerCase().includes(search.toLowerCase());
+
     const matchCategory =
       selectedCategory === "All" || p.category === selectedCategory;
-    // Skip price filter for lost-found
+
+    const itemPrice = p.price ?? p.price_per_day ?? 0; // ✅ correct fallback
     const matchPrice = isLostFound
       ? true
-      : (p.price ?? 0) >= selectedPriceRange.min &&
-        (p.price ?? 0) <= selectedPriceRange.max;
+      : itemPrice >= selectedPriceRange.min &&
+        itemPrice <= selectedPriceRange.max;
+
     return matchSearch && matchCategory && matchPrice;
   }).sort((a, b) => {
-    if (selectedSort.key === "price_asc")
-      return (a.price ?? 0) - (b.price ?? 0);
-    if (selectedSort.key === "price_desc")
-      return (b.price ?? 0) - (a.price ?? 0);
-    return new Date(b.createdAt) - new Date(a.createdAt);
+    const aPrice = a.price ?? a.price_per_day ?? 0; // ✅
+    const bPrice = b.price ?? b.price_per_day ?? 0; // ✅
+    if (selectedSort.key === "price_asc") return aPrice - bPrice;
+    if (selectedSort.key === "price_desc") return bPrice - aPrice;
+    return new Date(b.created_at) - new Date(a.created_at);
   });
 
   const activeFilterCount = [
@@ -301,7 +317,25 @@ export default function ProductListingScreen({
       </View>
 
       {/* ── Product Grid ────────────────────────── */}
-      {filteredProducts.length === 0 ? (
+      {isLoading && PRODUCTS.length === 0 ? (
+        // First load skeleton
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color="#0088ff" />
+          <Text style={styles.loadingText}>Loading listings...</Text>
+        </View>
+      ) : error ? (
+        // Error state
+        <View style={styles.emptyState}>
+          <Ionicons name="cloud-offline-outline" size={56} color="#D0D5DD" />
+          <Text style={styles.emptyTitle}>Failed to load</Text>
+          <Text style={styles.emptySubtitle}>{error}</Text>
+          {onRefresh && (
+            <TouchableOpacity style={styles.retryBtn} onPress={onRefresh}>
+              <Text style={styles.retryText}>Tap to retry</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : filteredProducts.length === 0 ? (
         <EmptyState isManage={isManage} page={page} />
       ) : (
         <FlatList
@@ -309,11 +343,14 @@ export default function ProductListingScreen({
           renderItem={({ item }) => (
             <ProductCard item={item} mode={mode} page={page} config={config} />
           )}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.product_id)}
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          // Pull to refresh
+          refreshing={refreshing}
+          onRefresh={onRefresh ? handleRefresh : undefined}
         />
       )}
 
@@ -493,9 +530,9 @@ function ProductCard({ item, mode, page, config }) {
       });
     } else {
       // Browse → detail page per service
+      console.log(item.product_id);
       router.push({
-        pathname: config.detailRoute(item.id),
-        params: { item: JSON.stringify(item) },
+        pathname: `/${page}/${item.product_id}`,
       });
     }
   };
@@ -522,7 +559,7 @@ function ProductCard({ item, mode, page, config }) {
         {/* Image */}
         <View style={cardStyles.imgWrap}>
           <Image
-            source={{ uri: item.images[0] }}
+            source={{ uri: item.image_urls[0] }}
             style={cardStyles.img}
             resizeMode="cover"
           />
@@ -550,21 +587,25 @@ function ProductCard({ item, mode, page, config }) {
           </Text>
 
           {/* Price — hide for lost-found */}
-          {!isLostFound && item.price != null && (
-            <Text style={cardStyles.price}>
-              ₹{Number(item.price).toLocaleString("en-IN")}
-            </Text>
-          )}
+          {!isLostFound &&
+            (item.price != null || item.price_per_day != null) && (
+              <Text style={cardStyles.price}>
+                ₹
+                {Number(item.price || item.price_per_day).toLocaleString(
+                  "en-IN",
+                )}
+              </Text>
+            )}
 
           {/* Seller */}
           <View style={cardStyles.sellerRow}>
             <View style={cardStyles.sellerAvatar}>
               <Text style={cardStyles.sellerAvatarText}>
-                {item.seller?.[0] ?? "?"}
+                {item.seller_name?.[0] ?? "?"}
               </Text>
             </View>
             <Text style={cardStyles.sellerName} numberOfLines={1}>
-              {item.seller}
+              {item.seller_name}
             </Text>
           </View>
 
@@ -586,7 +627,7 @@ function ProductCard({ item, mode, page, config }) {
                 onPress={() =>
                   router.push({
                     pathname: "/my-listings/edit",
-                    params: { item: JSON.stringify(item), action: "delete" },
+                    params: { item: JSON.stringify(item) },
                   })
                 }
                 activeOpacity={0.8}
@@ -812,6 +853,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   emptyPostText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  loadingState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  loadingText: { fontSize: 14, color: "#8E8E9A", fontWeight: "500" },
+  retryBtn: {
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+  },
+  retryText: { fontSize: 13, fontWeight: "700", color: "#0088ff" },
 
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)" },
   filterSheet: {

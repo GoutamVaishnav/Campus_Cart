@@ -1,4 +1,4 @@
-import api from "../api";
+import lostFoundApi from "../lostFoundApi";
 
 // const API = {
 //   SELL: "/api/sell",
@@ -16,10 +16,11 @@ export const postLostFoundProduct = async (productData) => {
 
   //   const url = API[listingType];
 
-  await api.post("/lost-found", productData, {
+  const response = await lostFoundApi.post("/lost-found", productData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
     timeout: 15000,
   });
+  return response.data;
 };

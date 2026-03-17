@@ -59,6 +59,8 @@ export const searchProducts = async (req, res, next) => {
 };
 
 export const getProductById = async (req, res, next) => {
+  console.log("hello");
+
   try {
     const product = await buyDb.buyProducts.findUnique({
       where: { product_id: Number(req.params.id) },
@@ -120,6 +122,7 @@ export const createProduct = async (req, res, next) => {
         college: req.body.college,
         category: req.body.category,
         location: req.body.location,
+        type: req.body.type,
         seller_id: req.user.id,
         seller_name: req.user.name,
         image_urls: imageUrls.slice(0, 4), // max 4 images
@@ -137,19 +140,19 @@ export const createProduct = async (req, res, next) => {
 };
 
 export const updateProduct = async (req, res, next) => {
+  console.log("BODY:", req.body);
+  console.log("FILES:", req.files);
   try {
     const product = await buyDb.buyProducts.findUnique({
       where: { product_id: Number(req.params.id) },
     });
 
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
-    // Owner check
     if (product.seller_id !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -157,9 +160,18 @@ export const updateProduct = async (req, res, next) => {
       });
     }
 
-    let imageUrls = product.image_urls || [];
+    let imageUrls = [];
 
-    // If new files uploaded, compress and add
+    // ✅ Keep existing images the user didn't remove
+    if (req.body.existingImages) {
+      // Could be a string (1 image) or array (multiple)
+      const existing = Array.isArray(req.body.existingImages)
+        ? req.body.existingImages
+        : [req.body.existingImages];
+      imageUrls = [...existing];
+    }
+
+    // ✅ Add newly uploaded images
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const url = await uploadCompressedImage(file);
@@ -167,19 +179,13 @@ export const updateProduct = async (req, res, next) => {
       }
     }
 
-    // If image URLs sent as text (optional)
-    if (req.body.image_urls) {
-      const urlsFromBody = req.body.image_urls.split(",");
-      imageUrls = [...imageUrls, ...urlsFromBody];
-    }
-
-    // Keep only max 4 images
+    // Keep max 4
     imageUrls = imageUrls.slice(0, 4);
 
     if (imageUrls.length === 0) {
       return res
         .status(400)
-        .json({ message: "Please provide at least one image (upload or URL)" });
+        .json({ message: "Please provide at least one image" });
     }
 
     const updatedProduct = await buyDb.buyProducts.update({

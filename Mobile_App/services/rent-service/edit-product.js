@@ -1,11 +1,12 @@
 import api from "../api";
 
-export const editRentProduct = async ({ formData }) => {
+export const editRentProduct = async ({ formData, id }) => {
   // Implementation for editing a rent product
-  await api.put("/rent", formData);
+  const response = await api.put(`/buy-rent/rent/products/${id}`, formData);
+  return response.data;
 };
 
 export const deleteRentProduct = async ({ id }) => {
   // Implementation for deleting a rent product
-  await api.delete(`/rent`, { id });
+  await api.delete(`/buy-rent/rent/products/${id}`);
 };

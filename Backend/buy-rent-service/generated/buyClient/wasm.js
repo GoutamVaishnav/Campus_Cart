@@ -130,6 +130,7 @@ exports.Prisma.BuyProductsScalarFieldEnum = {
   college: 'college',
   category: 'category',
   location: 'location',
+  type: 'type',
   seller_id: 'seller_id',
   seller_name: 'seller_name',
   image_urls: 'image_urls',

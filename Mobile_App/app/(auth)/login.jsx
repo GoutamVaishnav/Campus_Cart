@@ -18,9 +18,11 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { loginUser } from "../../services/auth-services/loginApi";
+import useUserStore from "@/store/useUserStore";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const login = useUserStore((s) => s.login);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +57,13 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
+      console.log("reached");
+
+      console.log("reached");
+
       const response = await loginUser(email, password);
+      console.log("reached");
+
       if (!response.data) {
         Toast.show({
           type: "error",
@@ -64,6 +72,11 @@ export default function LoginScreen() {
           visibilityTime: 3000,
         });
       }
+      await login({
+        user: response.data.user,
+        accessToken: response.data.accessToken,
+        refreshToken: response.data.refreshToken,
+      });
       // const { accessToken, refreshToken, user } = response.data;
       // await AsyncStorage.setItem("accessToken", accessToken);
       // await AsyncStorage.setItem("refreshToken", refreshToken);

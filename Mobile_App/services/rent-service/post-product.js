@@ -16,10 +16,11 @@ export const postRentProduct = async (productData) => {
 
   //   const url = API[listingType];
 
-  await api.post("/rent", productData, {
+  const response = await api.post("/buy-sell/rent/products", productData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
     timeout: 15000,
   });
+  return response.data;
 };

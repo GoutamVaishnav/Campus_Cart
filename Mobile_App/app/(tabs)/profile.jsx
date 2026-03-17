@@ -15,61 +15,67 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import useUserStore from "@/store/useUserStore";
 
 export default function ProfileScreen() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const user = useUserStore((s) => s.user);
+  const logout = useUserStore((s) => s.logout);
+  const isHydrated = useUserStore((s) => s.isHydrated);
+  const loading = !isHydrated;
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
   const listAnim = useRef(new Animated.Value(0)).current;
 
+  // useEffect(() => {
+  //   const loadUser = async () => {
+  //     try {
+  //       const data = await AsyncStorage.getItem("user");
+  //       if (data) {
+  //         setUser(JSON.parse(data));
+  //       } else {
+  //         // fallback demo data if nothing in storage
+  //         // setUser({
+  //         //   id: "a3f9c2d1-847b-4e2a-9f3d-12bc456ef789",
+  //         //   name: "Arjun Sharma",
+  //         //   email: "arjun.sharma@iit.ac.in",
+  //         //   phone: "+91 98765 43210",
+  //         //   college: "IIT Bombay",
+  //         //   verified: true,
+  //         // });
+  //         Toast.show({
+  //           type: "error",
+  //           text1: "User data not found",
+  //           text2: "Please log in again.",
+  //         });
+  //         router.replace("/(auth)/login");
+  //       }
+  //     } catch (e) {
+  //       Toast.show({
+  //         type: "error",
+  //         text1: "Error",
+  //         text2: "Failed to load user data.",
+  //       });
+  //       // setUser({
+  //       //   id: "a3f9c2d1-847b-4e2a-9f3d-12bc456ef789",
+  //       //   name: "Arjun Sharma",
+  //       //   email: "arjun.sharma@iit.ac.in",
+  //       //   phone: "+91 98765 43210",
+  //       //   college: "IIT Bombay",
+  //       //   verified: true,
+  //       // });
+  //       router.replace("/(auth)/login");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   loadUser();
+  // }, []);
+
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const data = await AsyncStorage.getItem("user");
-        if (data) {
-          setUser(JSON.parse(data));
-        } else {
-          // fallback demo data if nothing in storage
-          // setUser({
-          //   id: "a3f9c2d1-847b-4e2a-9f3d-12bc456ef789",
-          //   name: "Arjun Sharma",
-          //   email: "arjun.sharma@iit.ac.in",
-          //   phone: "+91 98765 43210",
-          //   college: "IIT Bombay",
-          //   verified: true,
-          // });
-          Toast.show({
-            type: "error",
-            text1: "User data not found",
-            text2: "Please log in again.",
-          });
-          router.replace("/(auth)/login");
-        }
-      } catch (e) {
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Failed to load user data.",
-        });
-        // setUser({
-        //   id: "a3f9c2d1-847b-4e2a-9f3d-12bc456ef789",
-        //   name: "Arjun Sharma",
-        //   email: "arjun.sharma@iit.ac.in",
-        //   phone: "+91 98765 43210",
-        //   college: "IIT Bombay",
-        //   verified: true,
-        // });
-        router.replace("/(auth)/login");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
+    useUserStore.getState().hydrate();
   }, []);
-
   useEffect(() => {
     if (!loading && user) {
       Animated.stagger(100, [
@@ -108,19 +114,19 @@ export default function ProfileScreen() {
   });
 
   const handleLogout = async () => {
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken", "user"]);
+    await logout();
     router.replace("/(auth)/login");
   };
 
-  const getInitials = (name) => {
-    if (!name) return "?";
-    return name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // const getInitials = (name) => {
+  //   if (!name) return "?";
+  //   return name
+  //     .split(" ")
+  //     .map((w) => w[0])
+  //     .join("")
+  //     .toUpperCase()
+  //     .slice(0, 2);
+  // };
 
   // Loading state
   if (loading) {

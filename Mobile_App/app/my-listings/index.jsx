@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import useMyListingsStore from "@/store/useMyListingsStore";
+import useUserStore from "@/store/useUserStore";
 
 const { width } = Dimensions.get("window");
 const H_PAD = 20;
@@ -21,7 +22,14 @@ const SQUARE_SIZE = (width - H_PAD * 2 - CARD_GAP) / 2;
 const WIDE_HEIGHT = SQUARE_SIZE * 0.62;
 
 export default function MyListingsScreen() {
-  const [user, setUser] = useState(null);
+  const user = useUserStore((s) => s.user);
+  const userId = useUserStore((s) => s.getUserId());
+  const fetchMyListings = useMyListingsStore((s) => s.fetchMyListings);
+
+  // ✅ Fix: select the raw arrays directly — reactive, updates when store changes
+  const sellCount = useMyListingsStore((s) => s.sellListings.length);
+  const rentCount = useMyListingsStore((s) => s.rentListings.length);
+  const lostFoundCount = useMyListingsStore((s) => s.lostFoundListings.length);
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   const card1Anim = useRef(new Animated.Value(0)).current;
@@ -29,9 +37,7 @@ export default function MyListingsScreen() {
   const card3Anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    AsyncStorage.getItem("user").then((data) => {
-      if (data) setUser(JSON.parse(data));
-    });
+    if (userId) fetchMyListings(userId);
 
     Animated.stagger(80, [
       Animated.spring(headerAnim, {
@@ -59,7 +65,7 @@ export default function MyListingsScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [userId]); // ✅ re-run if userId changes (e.g. after login)
 
   const animStyle = (anim) => ({
     opacity: anim,
@@ -80,7 +86,6 @@ export default function MyListingsScreen() {
       {/* Header */}
       <LinearGradient colors={["#c3b5b0", "#0088ff"]} style={styles.header}>
         <Animated.View style={animStyle(headerAnim)}>
-          {/* Top row */}
           <View style={styles.headerTop}>
             <TouchableOpacity
               onPress={() => router.back()}
@@ -97,7 +102,6 @@ export default function MyListingsScreen() {
             Manage all your posted items in one place
           </Text>
 
-          {/* User info pill */}
           {user && (
             <View style={styles.userPill}>
               <View style={styles.userPillAvatar}>
@@ -124,7 +128,6 @@ export default function MyListingsScreen() {
 
         {/* Top row — Sell + Rent */}
         <View style={styles.topRow}>
-          {/* Sell Listings */}
           <Animated.View style={animStyle(card1Anim)}>
             <TouchableOpacity
               activeOpacity={0.85}
@@ -162,7 +165,6 @@ export default function MyListingsScreen() {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Rent Listings */}
           <Animated.View style={animStyle(card2Anim)}>
             <TouchableOpacity
               activeOpacity={0.85}
@@ -201,7 +203,7 @@ export default function MyListingsScreen() {
           </Animated.View>
         </View>
 
-        {/* Lost & Found Listings */}
+        {/* Lost & Found */}
         <Animated.View style={[{ marginTop: CARD_GAP }, animStyle(card3Anim)]}>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -238,27 +240,27 @@ export default function MyListingsScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Quick stats strip */}
+        {/* Stats strip */}
         <Animated.View style={[styles.statsStrip, animStyle(card3Anim)]}>
           <StatPill
             icon="bag-handle-outline"
             label="Sell"
             color="#0088ff"
-            count={0}
+            count={sellCount}
           />
           <View style={styles.statsDivider} />
           <StatPill
             icon="repeat-outline"
             label="Rent"
             color="#00aacc"
-            count={0}
+            count={rentCount}
           />
           <View style={styles.statsDivider} />
           <StatPill
             icon="search-circle-outline"
             label="Lost/Found"
             color="#54d5eb"
-            count={0}
+            count={lostFoundCount}
           />
         </Animated.View>
 
@@ -288,7 +290,6 @@ export default function MyListingsScreen() {
   );
 }
 
-// ── Stat Pill ──────────────────────────────────────────────────
 function StatPill({ icon, label, color, count }) {
   return (
     <View style={statStyles.wrap}>
@@ -299,11 +300,8 @@ function StatPill({ icon, label, color, count }) {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7F8FA" },
-
-  // Header
   header: {
     paddingTop: Platform.OS === "ios" ? 56 : 44,
     paddingHorizontal: H_PAD,
@@ -337,7 +335,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // User pill
   userPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -370,7 +367,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Body
   body: {
     flex: 1,
     backgroundColor: "#fff",
@@ -390,10 +386,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Cards — same as home screen
   topRow: { flexDirection: "row", justifyContent: "space-between" },
   cardTouch: { borderRadius: 20, overflow: "hidden" },
-
   squareCard: {
     borderRadius: 20,
     padding: 18,
@@ -453,7 +447,6 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: -20,
   },
-
   wideCard: {
     borderRadius: 20,
     flexDirection: "row",
@@ -481,7 +474,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // Stats strip
   statsStrip: {
     flexDirection: "row",
     backgroundColor: "#F7F8FA",
@@ -492,7 +484,6 @@ const styles = StyleSheet.create({
   },
   statsDivider: { width: 1, backgroundColor: "#E8EBF0", marginVertical: 4 },
 
-  // Post new btn
   postNewBtn: {
     flexDirection: "row",
     alignItems: "center",
